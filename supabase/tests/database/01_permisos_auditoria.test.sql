@@ -89,7 +89,8 @@ select is((select count(*)::int from public.gastos), 0, 'El mesero no ve gastos'
 select is((select count(*)::int from public.pagos), 0, 'El mesero no ve pagos');
 select is((select count(*)::int from public.auditoria), 0, 'El mesero no ve la auditoría');
 select is((select count(*)::int from public.autorizaciones), 0, 'El mesero no ve autorizaciones');
-select is((select count(*)::int from public.productos), 1, 'El mesero solo ve productos activos (no inactivos)');
+select is((select count(*)::int from public.productos where categoria_id = 'c0000000-0000-0000-0000-000000000001'), 1,
+  'El mesero solo ve productos activos (no inactivos)');
 select is((select count(*)::int from public.cuentas), 1, 'El mesero ve la cuenta abierta, no la cobrada');
 select throws_ok($$ insert into public.productos (categoria_id, nombre, precio)
                    values ('c0000000-0000-0000-0000-000000000001', 'Pirata', 1) $$,

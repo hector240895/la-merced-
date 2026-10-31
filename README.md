@@ -4,14 +4,15 @@ Sistema web (PWA) para la operación y administración de Cenaduría La Merced:
 mesas, comandas impresas, caja, catálogo, inventario manual, gastos y reportes.
 
 - Base de datos y autenticación: Supabase (`supabase/`)
+- Aplicación web (PWA): React + Vite (`app/`), publicada en Vercel
 - Especificación: documento maestro v1.4
 
 ## Etapas
 
 | # | Etapa | Estado |
 | --- | --- | --- |
-| 2 | Base de datos, usuarios, roles, permisos y auditoría | Lista para revisión → [docs/ETAPA-2.md](docs/ETAPA-2.md) |
-| 3 | Mesas y pedidos | Pendiente |
+| 2 | Base de datos, usuarios, roles, permisos y auditoría | Terminada → [docs/ETAPA-2.md](docs/ETAPA-2.md) |
+| 3 | Mesas y pedidos | Lista para revisión → [docs/ETAPA-3.md](docs/ETAPA-3.md) |
 | 4 | Comandas | Pendiente |
 | 5 | Caja y pagos | Pendiente |
 | 6 | Impresoras | Pendiente |
