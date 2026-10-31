@@ -1,0 +1,12 @@
+{
+  "name": "sistema-la-merced",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "propietario": "node --env-file=.env.local scripts/crear-propietario.mjs",
+    "probar:api": "node scripts/probar-etapa2.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.75.0"
+  }
+}
