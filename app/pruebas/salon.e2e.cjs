@@ -85,14 +85,14 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
 
   await comprobar('Carlos toma el pedido de la Mesa 1 con observación', async () => {
     await tarjeta(carlos, 'Mesa 1').locator('.tbl').click();
-    await producto(carlos, 'Pozole rojo').getByRole('button', { name: 'Agregar' }).click();
-    await carlos.getByRole('button', { name: 'Agregar un Pozole rojo' }).click();
-    await producto(carlos, 'Pozole rojo').getByRole('button', { name: 'Agregar observación' }).click();
-    await carlos.getByLabel('Observación para Pozole rojo').fill('Sin lechuga');
+    await producto(carlos, 'Pozole rojo chico').getByRole('button', { name: 'Agregar' }).click();
+    await carlos.getByRole('button', { name: 'Agregar un Pozole rojo chico' }).click();
+    await producto(carlos, 'Pozole rojo chico').getByRole('button', { name: 'Agregar observación' }).click();
+    await carlos.getByLabel('Observación para Pozole rojo chico').fill('Sin lechuga');
     await carlos.getByRole('button', { name: 'Guardar' }).click();
-    await carlos.getByRole('button', { name: 'Bebidas' }).click();
-    await producto(carlos, 'Refresco').getByRole('button', { name: 'Agregar' }).click();
-    await carlos.getByRole('button', { name: 'Cenas' }).click();
+    await carlos.getByRole('button', { name: 'Bebidas', exact: true }).click();
+    await producto(carlos, 'Refresco de vidrio (355 ml)').getByRole('button', { name: 'Agregar' }).click();
+    await carlos.getByRole('button', { name: 'Pozole', exact: true }).click();
     await captura(carlos, '04-mesero-pedido');
     await carlos.getByRole('button', { name: /Revisar pedido · 3 productos/ }).click();
     await carlos.locator('.pane').getByText('Sin lechuga').waitFor();
@@ -100,7 +100,7 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
     await carlos.getByRole('button', { name: 'Enviar a cocina' }).click();
     await carlos.getByText('Pedido enviado a cocina').waitFor();
     await tarjeta(carlos, 'Mesa 1').getByText('Pedido enviado').waitFor();
-    await tarjeta(carlos, 'Mesa 1').getByText('3 productos · $218').waitFor();
+    await tarjeta(carlos, 'Mesa 1').getByText('3 productos · $175').waitFor();
     await captura(carlos, '06-mesero-enviado');
   });
 
@@ -110,14 +110,14 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
 
   await comprobar('Pedido adicional: solo lo nuevo se suma a la cuenta', async () => {
     await tarjeta(carlos, 'Mesa 1').locator('.tbl').click();
-    await carlos.getByRole('button', { name: 'Postres' }).click();
-    await producto(carlos, 'Buñuelos').getByRole('button', { name: 'Agregar' }).click();
+    await carlos.getByRole('button', { name: 'Postres', exact: true }).click();
+    await producto(carlos, 'Jericallas').getByRole('button', { name: 'Agregar' }).click();
     await carlos.getByRole('button', { name: /Revisar pedido · 4 productos/ }).click();
     await carlos.getByText('Nueva comanda').waitFor();
     await carlos.getByText('Ya enviado a cocina').waitFor();
     await carlos.getByRole('button', { name: 'Enviar a cocina' }).click();
     await carlos.getByText('Pedido adicional enviado a cocina').waitFor();
-    await tarjeta(carlos, 'Mesa 1').getByText('4 productos · $263').waitFor();
+    await tarjeta(carlos, 'Mesa 1').getByText('4 productos · $220').waitFor();
   });
 
   await comprobar('Carlos une la Mesa 1 con la Mesa 2', async () => {
@@ -132,14 +132,14 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
   await comprobar('Carlos quita un pozole con motivo; queda tachado y el total baja', async () => {
     await carlos.locator('.tbl', { hasText: 'Mesa 1 + Mesa 2' }).click();
     await carlos.getByRole('button', { name: /Revisar pedido/ }).click();
-    await carlos.locator('.li', { hasText: '2 × Pozole rojo' }).getByRole('button', { name: 'Quitar' }).click();
+    await carlos.locator('.li', { hasText: '2 × Pozole rojo chico' }).getByRole('button', { name: 'Quitar' }).click();
     await carlos.getByLabel('Motivo').fill('Uno no se llevó al cliente');
     await carlos.getByLabel('Cantidad a quitar').selectOption('1');
     await carlos.getByRole('button', { name: 'Confirmar' }).click();
     await carlos.getByText('Quitados').waitFor();
-    await carlos.locator('.li.tachado', { hasText: '1 × Pozole rojo' }).waitFor();
-    await carlos.locator('.li', { hasText: '1 × Pozole rojo' }).first().waitFor();
-    await carlos.locator('.tot', { hasText: '$168' }).waitFor();
+    await carlos.locator('.li.tachado', { hasText: '1 × Pozole rojo chico' }).waitFor();
+    await carlos.locator('.li', { hasText: '1 × Pozole rojo chico' }).first().waitFor();
+    await carlos.locator('.tot', { hasText: '$145' }).waitFor();
     await captura(carlos, '08-mesero-quitar');
   });
 

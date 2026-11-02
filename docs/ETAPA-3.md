@@ -29,7 +29,7 @@
 | Archivo | Contenido |
 | --- | --- |
 | `20261101000100_mesas_pedidos.sql` | Funciones de mesas y pedidos, administración de mesas, tiempo real y un solo aviso por acción entre propietarios |
-| `20261101000200_menu_ejemplo.sql` | Menú de ejemplo del prototipo (11 productos en Cenas, Bebidas y Postres) |
+| `20261101000200_menu.sql` | Menú de La Merced: 57 productos en 10 categorías, tomados de la carta (MENU_1.pdf) |
 
 ## Reglas nuevas que cuida el servidor
 
@@ -43,7 +43,7 @@
 
 - **No imprime todavía.** "Enviar a cocina" registra la comanda, pero el papel sale cuando conectemos la impresora (Etapas 4 y 6).
 - **Cobro, pedidos para llevar y corte de caja:** Etapa 5.
-- **Catálogo editable** (productos, precios, fotos): Etapa 7. Por ahora está el menú de ejemplo.
+- **Catálogo editable** (productos, precios, fotos, marcar agotado): Etapa 7. Mientras tanto, cualquier cambio al menú me lo pides.
 
 ## Cómo publicarlo
 
@@ -84,10 +84,10 @@ Abre la dirección en el celular:
 ## Cómo comprobar que funciona
 
 1. **Entrar como propietario:** en la computadora, entra como `hector` → pestaña **Usuarios** → agrega un mesero de prueba (por ejemplo, usuario `prueba`).
-2. **Tomar un pedido:** en el celular, entra como `prueba` → toca **Mesa 1** → agrega 2 pozoles con la observación "Sin lechuga" y un refresco → **Revisar pedido** → **Enviar a cocina**.
+2. **Tomar un pedido:** en el celular, entra como `prueba` → toca **Mesa 1** → agrega 2 pozoles rojos chicos con la observación "Sin lechuga" y un refresco de vidrio → **Revisar pedido** → **Enviar a cocina**.
 3. **Ver el cambio en vivo:** en la computadora (pestaña **Salón**), la Mesa 1 cambia a *Pedido enviado* sin recargar.
 4. **Pedido adicional:** en el celular, agrega un postre a la Mesa 1 y envía. En *Revisar pedido* se ve "Ya enviado a cocina" separado de lo nuevo.
-5. **Quitar un producto:** en *Revisar pedido* → **Quitar** en el pozole → escribe el motivo y elige *Quitar 1* → **Confirmar**. Queda tachado en *Quitados* y el total baja $95.
+5. **Quitar un producto:** en *Revisar pedido* → **Quitar** en el pozole → escribe el motivo y elige *Quitar 1* → **Confirmar**. Queda tachado en *Quitados* y el total baja $75.
 6. **Unir y separar:**
    - Toca **Unir mesas**, elige la Mesa 2 y la Mesa 1, y confirma. Aparece una sola tarjeta "Mesa 1 + Mesa 2".
    - Toca *Separar mesas* para separarlas otra vez.
@@ -111,3 +111,12 @@ Abre la dirección en el celular:
 2. **Unir mesas con pedido en ambas no se permite.** Si pasa en la operación, se pide la cuenta de una y se sigue en la otra.
 3. **El mesero puede quitar productos de cualquier mesa**, porque nadie tiene mesas asignadas. Todo queda registrado con su nombre y motivo.
 4. **El propietario también puede tomar pedidos** desde la pestaña Salón.
+
+## Cómo quedó capturado el menú
+
+- **Guisados:** el mesero los anota en la observación. Cada platillo con guisado muestra la lista: deshebrada, papas con chorizo, chicharrón prensado verde, requesón con rajas, champiñones o pollo.
+- **Opciones separadas:** donde la carta junta opciones que cocina prepara distinto, van como productos separados con el mismo precio. Son las medias órdenes "de pollo / queso" y "deshebrada / requesón", y los tamales rojo, verde y de prensado con queso.
+- **Sabor de refrescos, aguas y Arizona:** se anota en la observación.
+- **"De pollo (extra $5)" del pozole:** es el producto *Pozole de pollo (extra)*, que se agrega junto al pozole.
+- **"Solo viernes, sábado y domingo" y "Solo viernes y sábado":** aparece en la descripción. Desde la Etapa 7 podrás marcarlos como agotados los demás días.
+- **"Todos nuestros platillos son preparados con lechuga, crema y queso":** los cambios ("sin crema") van en la observación.

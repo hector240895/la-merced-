@@ -26,12 +26,12 @@ reset role;
 create temp table ids as
 select (select id from mesas where nombre = 'Mesa 1') m1, (select id from mesas where nombre = 'Mesa 2') m2,
        (select id from mesas where nombre = 'Mesa 3') m3, (select id from mesas where nombre = 'Mesa 4') m4,
-       (select id from productos where nombre = 'Pozole rojo') pozole,
-       (select id from productos where nombre = 'Refresco') refresco,
-       (select id from productos where nombre = 'Flautas') flautas,
+       (select id from productos where nombre = 'Pozole rojo chico') pozole,
+       (select id from productos where nombre = 'Refresco de vidrio (355 ml)') refresco,
+       (select id from productos where nombre = 'Flautas de pollo') flautas,
        gen_random_uuid() s1, gen_random_uuid() s2;
 grant select on ids to authenticated;
-update productos set estado = 'agotado' where nombre = 'Flautas';
+update productos set estado = 'agotado' where nombre = 'Flautas de pollo';
 
 -- ---------------------------------------------------------------- Mesero
 select pg_temp.como('33333333-3333-3333-3333-333333333333');
@@ -49,7 +49,7 @@ select is((select estado::text from mesas where id = (select m1 from ids)), 'ped
 select is((select count(*)::int from cuentas where mesa_id = (select m1 from ids)), 1, 'El primer pedido abre la cuenta');
 select is((select mesero_id from cuentas where mesa_id = (select m1 from ids)),
   '33333333-3333-3333-3333-333333333333'::uuid, 'La cuenta guarda al mesero');
-select is((select precio_unitario from lineas_cuenta where producto_id = (select pozole from ids)), 95.00,
+select is((select precio_unitario from lineas_cuenta where producto_id = (select pozole from ids)), 75.00,
   'La línea guarda el precio del momento');
 select is((select observacion from lineas_cuenta where producto_id = (select pozole from ids)), 'Sin lechuga',
   'La observación se guarda');
@@ -72,7 +72,7 @@ select is((select count(*)::int from comanda_lineas cl join comandas c on c.id =
 
 select throws_ok($$ select public.enviar_pedido((select m2 from ids),
   jsonb_build_array(jsonb_build_object('producto_id', (select flautas from ids), 'cantidad', 1)), gen_random_uuid()) $$,
-  'Flautas está agotado', 'No se piden productos agotados');
+  'Flautas de pollo está agotado', 'No se piden productos agotados');
 select is((select estado::text from mesas where id = (select m2 from ids)), 'disponible', 'Un envío rechazado no deja nada a medias');
 select throws_ok($$ select public.enviar_pedido((select m2 from ids), '[]'::jsonb, gen_random_uuid()) $$,
   'El pedido no tiene productos', 'No se envía un pedido vacío');
