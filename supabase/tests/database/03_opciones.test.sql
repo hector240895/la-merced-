@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(9);
+select plan(10);
 
 create function pg_temp.como(p_id uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true),
@@ -29,6 +29,8 @@ select is((select opciones from productos where nombre = 'Agua de sabor (900 ml)
   'El agua de 900 ml tiene horchata y jamaica');
 select is((select cardinality(opciones) from productos where nombre = 'Refresco de vidrio (355 ml)'), 11,
   'El refresco de vidrio tiene 11 sabores');
+select is((select opciones from productos where nombre = 'Arizona'), array['Té verde', 'Mango', 'Kiwi', 'Sandía'],
+  'El Arizona tiene sus 4 sabores');
 
 select pg_temp.como('33333333-3333-3333-3333-333333333333');
 select throws_ok($$ select public.enviar_pedido((select m1 from ids),
