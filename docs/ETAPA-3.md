@@ -32,6 +32,7 @@
 | `20261101000200_menu.sql` | Menú de La Merced: 57 productos en 10 categorías, tomados de la carta (MENU_1.pdf) |
 | `20261102000100_opciones_sabores.sql` | Opciones para elegir en un producto (sabores de aguas y refrescos) |
 | `20261102000200_sabores_arizona.sql` | Sabores del Arizona |
+| `20261103000100_correcciones_auditoria.sql` | Correcciones de la auditoría técnica (ver abajo) |
 
 ## Reglas nuevas que cuida el servidor
 
@@ -103,7 +104,7 @@ Abre la dirección en el celular:
 
 ## Pruebas automáticas (en esta etapa)
 
-- 49 pruebas de la Etapa 2, 40 de la Etapa 3 y 10 de sabores sobre la base de datos (`supabase/tests/database/`).
+- 49 pruebas de la Etapa 2, 40 de la Etapa 3 10 de sabores y 17 de las correcciones sobre la base de datos, más pruebas con dos sesiones a la vez (`supabase/tests/database/`).
 - 19 comprobaciones de la app en un navegador real, con un celular y dos computadoras a la vez (`app/pruebas/salon.e2e.cjs`).
 - Todas pasan contra la copia local de Supabase.
 
@@ -126,3 +127,27 @@ Abre la dirección en el celular:
 - **"De pollo (extra $5)" del pozole:** es el producto *Pozole de pollo (extra)*, que se agrega junto al pozole.
 - **"Solo viernes, sábado y domingo" y "Solo viernes y sábado":** aparece en la descripción. Desde la Etapa 7 podrás marcarlos como agotados los demás días.
 - **"Todos nuestros platillos son preparados con lechuga, crema y queso":** los cambios ("sin crema") van en la observación.
+
+## Correcciones de la auditoría técnica (2 de noviembre de 2026)
+
+En `20261103000100_correcciones_auditoria.sql`, más un ajuste en `20261101000100_mesas_pedidos.sql`:
+
+| # | Corrección | Antes | Ahora |
+| --- | --- | --- | --- |
+| 1 | Pedido vacío (`NULL`) | Creaba una cuenta vacía y bloqueaba la mesa | Se rechaza sin crear nada |
+| 2 | Identificador de envío usado en otra mesa | Respondía "repetido" y el pedido nuevo se perdía | Se rechaza con un mensaje claro |
+| 3 | Dos envíos idénticos al mismo tiempo | El segundo recibía un error técnico | El segundo responde "repetido"; una sola comanda |
+| 4 | Dos meseros uniendo mesas a la vez | Una mesa podía quedar unida en cadena y desaparecer del salón | Se recalcula el grupo; la base prohíbe las cadenas |
+| 5 | Quitar un producto mientras otro envía (y aprobar autorizaciones) | Orden de bloqueo distinto: posible error en hora pico | Mismo orden en todas (mesa → cuenta) |
+| 6 | Mesa con una cuenta de cobro anulado | No se podía desactivar ni eliminar | La cuenta anulada ya no ocupa la mesa |
+| 7 | Nombres de categorías y productos | Se podían repetir | Únicos entre los vigentes |
+| 8 | `ordenar_mesas` | Aceptaba repetidos e inexistentes | Los rechaza y valida la sucursal |
+| 9 | Observaciones | Sin límite | Hasta 200 letras |
+| 10 | Activar Realtime | Fallaba si una tabla ya estaba activada | Solo agrega las que faltan |
+
+Sin cambios: las migraciones de la Etapa 2 (ya en Supabase), el menú y los sabores.
+
+## Decisiones confirmadas (2 de noviembre de 2026)
+
+- **Inventario manual:** sin descuento automático por venta, como dice el documento maestro.
+- **Pedidos para llevar:** los registran el cajero **y los meseros**. Se construye en la Etapa 5, junto con el cobro y el ticket.

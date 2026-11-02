@@ -584,12 +584,19 @@ to authenticated;
 grant execute on function public.instalar_propietario(uuid, text, text) to service_role;
 
 -- Cambios en vivo para las pantallas (Realtime respeta los mismos permisos).
+-- Solo agrega las tablas que aún no están: no falla si alguna ya se activó
+-- desde el panel de Supabase.
 do $$
+declare
+  t text;
 begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
-    alter publication supabase_realtime add table
-      public.mesas, public.cuentas, public.lineas_cuenta, public.comandas,
-      public.avisos, public.autorizaciones, public.usuarios;
+    foreach t in array array['mesas', 'cuentas', 'lineas_cuenta', 'comandas', 'avisos', 'autorizaciones', 'usuarios'] loop
+      if not exists (select 1 from pg_publication_tables
+                     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
+        execute format('alter publication supabase_realtime add table public.%I', t);
+      end if;
+    end loop;
   end if;
 end
 $$;
