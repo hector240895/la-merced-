@@ -9,7 +9,10 @@ import {
 // Pedido que el mesero va armando antes de enviarlo. Se guarda en el teléfono
 // para no perderlo si se cierra la app; "solicitud" evita duplicar un envío
 // que se reintenta después de un corte de señal.
-interface Borrador { items: { producto_id: string; cantidad: number; observacion: string }[]; solicitud?: string }
+interface Item { producto_id: string; opcion?: string; cantidad: number; observacion: string }
+interface Borrador { items: Item[]; solicitud?: string }
+const mismo = (x: Item, producto_id: string, opcion?: string) => x.producto_id === producto_id && (x.opcion ?? '') === (opcion ?? '');
+const nombreLinea = (nombre: string, opcion?: string | null) => (opcion ? `${nombre} · ${opcion}` : nombre);
 type Borradores = Record<string, Borrador>;
 const CLAVE_BORRADORES = 'la-merced-borradores';
 
@@ -46,14 +49,14 @@ export default function Salon({ yo, salir, dentroDePanel = false }: { yo: Yo; sa
       supabase.from('cuentas').select('id, folio, tipo, mesa_id, estado, mesero_id, cobro_anulado_en')
         .eq('tipo', 'mesa').in('estado', ['abierta', 'por_cobrar']).is('cobro_anulado_en', null),
       supabase.from('categorias').select('id, nombre, orden').order('orden'),
-      supabase.from('productos').select('id, categoria_id, nombre, descripcion, precio, estado, orden').order('orden'),
+      supabase.from('productos').select('id, categoria_id, nombre, descripcion, precio, estado, orden, opciones').order('orden'),
     ]);
     const fallo = m.error ?? c.error ?? k.error ?? p.error;
     if (fallo) { setError(mensajeDe(fallo)); return; }
     const ids = (c.data ?? []).map((x) => x.id);
     const l = ids.length
       ? await supabase.from('lineas_cuenta')
-          .select('id, cuenta_id, producto_id, nombre_producto, precio_unitario, cantidad, observacion, estado, cancelacion_motivo, enviada_en, reemplaza_linea_id, creado_en')
+          .select('id, cuenta_id, producto_id, nombre_producto, precio_unitario, cantidad, observacion, opcion, estado, cancelacion_motivo, enviada_en, reemplaza_linea_id, creado_en')
           .in('cuenta_id', ids).order('creado_en')
       : { data: [], error: null };
     if (l.error) { setError(mensajeDe(l.error)); return; }
@@ -121,7 +124,7 @@ export default function Salon({ yo, salir, dentroDePanel = false }: { yo: Yo; sa
         const juntos: Borrador['items'] = [];
         for (const id of [principal, ...elegidas.filter((e) => e !== principal)]) {
           for (const it of y[id]?.items ?? []) {
-            const igual = juntos.find((j) => j.producto_id === it.producto_id);
+            const igual = juntos.find((j) => mismo(j, it.producto_id, it.opcion));
             if (igual) igual.cantidad = Math.min(99, igual.cantidad + it.cantidad);
             else juntos.push({ ...it });
           }
@@ -253,17 +256,17 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
   const total = enviadas.reduce((s, l) => s + l.precio_unitario * l.cantidad, 0) + totalBorrador;
   const piezas = enviadas.reduce((s, l) => s + l.cantidad, 0) + items.reduce((s, x) => s + x.cantidad, 0);
 
-  function cambiar(producto_id: string, delta: number) {
+  function cambiar(producto_id: string, delta: number, opcion?: string) {
     const lista = items.map((x) => ({ ...x }));
-    let l = lista.find((x) => x.producto_id === producto_id);
-    if (!l) { l = { producto_id, cantidad: 0, observacion: '' }; lista.push(l); }
+    let l = lista.find((x) => mismo(x, producto_id, opcion));
+    if (!l) { l = { producto_id, opcion, cantidad: 0, observacion: '' }; lista.push(l); }
     l.cantidad = Math.min(99, l.cantidad + delta);
     // Cambiar el pedido invalida el identificador de un envío anterior fallido.
     guardarBorrador({ items: lista.filter((x) => x.cantidad > 0) });
   }
 
   function guardarNota(producto_id: string) {
-    guardarBorrador({ items: items.map((x) => x.producto_id === producto_id ? { ...x, observacion: nota.trim() } : x) });
+    guardarBorrador({ items: items.map((x) => mismo(x, producto_id) ? { ...x, observacion: nota.trim() } : x) });
     setNotaDe(null);
   }
 
@@ -313,15 +316,36 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
       <main>
         {bloqueada && <p className="lock">Cuenta solicitada. El cajero registrará el cobro y liberará la mesa.</p>}
         {!bloqueada && productos.filter((p) => p.categoria_id === cat).map((p) => {
-          const l = items.find((x) => x.producto_id === p.id);
+          const l = items.find((x) => mismo(x, p.id));
           const agotado = p.estado === 'agotado';
+          const conOpciones = p.opciones?.length > 0;
+          const elegidas = items.filter((x) => x.producto_id === p.id).length;
           return (
-            <div key={p.id} className={`prod ${l ? 'has' : ''} ${agotado ? 'agotado' : ''}`}>
+            <div key={p.id} className={`prod ${l || elegidas ? 'has' : ''} ${agotado ? 'agotado' : ''}`}>
               <div className="rh">
                 <div><h3>{p.nombre}</h3>{p.descripcion && <p>{p.descripcion}</p>}</div>
                 <span className="pr">{dinero(p.precio)}</span>
               </div>
-              {agotado ? <p className="note">Agotado</p> : l ? (
+              {agotado ? <p className="note">Agotado</p> : conOpciones ? (
+                // Sabores: cada uno con su propia cantidad.
+                <div className="opciones" role="group" aria-label={`Sabor de ${p.nombre}`}>
+                  {p.opciones.map((o) => {
+                    const x = items.find((it) => mismo(it, p.id, o));
+                    return x ? (
+                      <div key={o} className="opc on">
+                        <span>{o}</span>
+                        <div className="qty">
+                          <button onClick={() => cambiar(p.id, -1, o)} aria-label={`Quitar un ${p.nombre} ${o}`}>−</button>
+                          <span>{x.cantidad}</span>
+                          <button onClick={() => cambiar(p.id, 1, o)} aria-label={`Agregar un ${p.nombre} ${o}`}>+</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button key={o} className="opc" onClick={() => cambiar(p.id, 1, o)}>+ {o}</button>
+                    );
+                  })}
+                </div>
+              ) : l ? (
                 <>
                   {l.observacion && notaDe !== p.id && <p className="nv">{l.observacion}</p>}
                   {notaDe === p.id && (
@@ -365,7 +389,7 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
             {enviadas.map((l) => (
               <div key={l.id} className="li old">
                 <span>
-                  {l.cantidad} × {l.nombre_producto}{l.observacion && <small>{l.observacion}</small>}
+                  {l.cantidad} × {nombreLinea(l.nombre_producto, l.opcion)}{l.observacion && <small>{l.observacion}</small>}
                   {quitando === l.id ? (
                     <span className="ni">
                       <input autoFocus placeholder="Motivo (obligatorio)" value={motivo} onChange={(e) => setMotivo(e.target.value)} aria-label="Motivo" />
@@ -391,18 +415,18 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
               const queda = grupo.lineas.find((x) => x.reemplaza_linea_id === l.id)?.cantidad ?? 0;
               return (
                 <div key={l.id} className="li tachado">
-                  <span>{l.cantidad - queda} × {l.nombre_producto}<small>{l.cancelacion_motivo}</small></span><span>—</span>
+                  <span>{l.cantidad - queda} × {nombreLinea(l.nombre_producto, l.opcion)}<small>{l.cancelacion_motivo}</small></span><span>—</span>
                 </div>
               );
             })}
 
             {items.length > 0 && <h3>{enviadas.length ? 'Nueva comanda' : 'Pedido nuevo'}</h3>}
             {items.map((x) => (
-              <div key={x.producto_id} className="li">
+              <div key={`${x.producto_id}|${x.opcion ?? ''}`} className="li">
                 <span>
-                  {x.cantidad} × {precio[x.producto_id]?.nombre ?? 'Producto'}
+                  {x.cantidad} × {nombreLinea(precio[x.producto_id]?.nombre ?? 'Producto', x.opcion)}
                   {x.observacion && <small>{x.observacion}</small>}
-                  {' '}<button className="rm" onClick={() => cambiar(x.producto_id, -x.cantidad)}>Quitar</button>
+                  {' '}<button className="rm" onClick={() => cambiar(x.producto_id, -x.cantidad, x.opcion)}>Quitar</button>
                 </span>
                 <span>{dinero((precio[x.producto_id]?.precio ?? 0) * x.cantidad)}</span>
               </div>

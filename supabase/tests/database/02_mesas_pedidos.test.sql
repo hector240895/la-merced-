@@ -43,7 +43,7 @@ select is((select estado::text from mesas where id = (select m1 from ids)), 'dis
 
 select public.enviar_pedido((select m1 from ids),
   jsonb_build_array(jsonb_build_object('producto_id', (select pozole from ids), 'cantidad', 2, 'observacion', 'Sin lechuga'),
-                    jsonb_build_object('producto_id', (select refresco from ids), 'cantidad', 2)),
+                    jsonb_build_object('producto_id', (select refresco from ids), 'cantidad', 2, 'opcion', 'Pepsi')),
   (select s1 from ids));
 select is((select estado::text from mesas where id = (select m1 from ids)), 'pedido_enviado', 'Enviar deja la mesa en pedido enviado');
 select is((select count(*)::int from cuentas where mesa_id = (select m1 from ids)), 1, 'El primer pedido abre la cuenta');
@@ -65,7 +65,7 @@ select is((select count(*)::int from lineas_cuenta l join cuentas k on k.id = l.
 
 -- Pedido adicional: solo lo nuevo.
 select public.enviar_pedido((select m1 from ids),
-  jsonb_build_array(jsonb_build_object('producto_id', (select refresco from ids), 'cantidad', 1)), (select s2 from ids));
+  jsonb_build_array(jsonb_build_object('producto_id', (select refresco from ids), 'cantidad', 1, 'opcion', 'Pepsi')), (select s2 from ids));
 select is((select tipo::text from comandas where solicitud_id = (select s2 from ids)), 'adicional', 'El segundo envío es comanda adicional');
 select is((select count(*)::int from comanda_lineas cl join comandas c on c.id = cl.comanda_id where c.solicitud_id = (select s2 from ids)),
   1, 'La comanda adicional lleva solo lo nuevo');
@@ -101,10 +101,10 @@ select is((select unida_a from mesas where id = (select m3 from ids)), (select m
   'La mesa sin cuenta se une a la que tiene pedido');
 select is((select estado::text from mesas where id = (select m3 from ids)), 'pedido_enviado', 'La mesa unida toma el estado del grupo');
 select public.enviar_pedido((select m3 from ids),
-  jsonb_build_array(jsonb_build_object('producto_id', (select refresco from ids), 'cantidad', 1)), gen_random_uuid());
+  jsonb_build_array(jsonb_build_object('producto_id', (select refresco from ids), 'cantidad', 1, 'opcion', 'Pepsi')), gen_random_uuid());
 select is((select count(*)::int from cuentas where estado = 'abierta'), 1, 'Pedir desde la mesa unida usa la misma cuenta');
 select public.enviar_pedido((select m2 from ids),
-  jsonb_build_array(jsonb_build_object('producto_id', (select refresco from ids), 'cantidad', 1)), gen_random_uuid());
+  jsonb_build_array(jsonb_build_object('producto_id', (select refresco from ids), 'cantidad', 1, 'opcion', 'Pepsi')), gen_random_uuid());
 select throws_ok($$ select public.unir_mesas(array[(select m1 from ids), (select m2 from ids)]) $$,
   'Solo se puede unir si a lo más una de las mesas tiene pedido', 'No se unen dos mesas con pedido');
 select public.separar_mesas((select m3 from ids));
@@ -116,7 +116,7 @@ select is((select count(*)::int from uniones_mesas), 2, 'Unión y separación qu
 select public.pedir_cuenta((select m1 from ids));
 select is((select estado::text from mesas where id = (select m1 from ids)), 'por_cobrar', 'Pedir la cuenta deja la mesa por cobrar');
 select throws_ok($$ select public.enviar_pedido((select m1 from ids),
-  jsonb_build_array(jsonb_build_object('producto_id', (select refresco from ids), 'cantidad', 1)), gen_random_uuid()) $$,
+  jsonb_build_array(jsonb_build_object('producto_id', (select refresco from ids), 'cantidad', 1, 'opcion', 'Pepsi')), gen_random_uuid()) $$,
   null, 'Con la cuenta pedida ya no se agregan productos');
 select throws_ok($$ select public.liberar_mesa((select m1 from ids)) $$, null, 'Una mesa con cuenta no se libera a mano');
 select throws_ok($$ select public.crear_mesa('Terraza') $$, '42501', null, 'El mesero no administra mesas');

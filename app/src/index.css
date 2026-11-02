@@ -106,6 +106,10 @@ main.ancho { padding: 20px 16px; max-width: 1000px; margin-inline: auto; }
 .qty { display: flex; align-items: center; border: 1.5px solid var(--g); border-radius: 10px; }
 .qty button { width: 40px; height: 38px; font-size: 20px; color: var(--gt); }
 .qty span { min-width: 28px; text-align: center; font-weight: 600; }
+.opciones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.opc { border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 10px; font-weight: 600; text-align: left; color: var(--gt); min-height: 44px; }
+.opc.on { display: flex; align-items: center; justify-content: space-between; gap: 6px; border-color: var(--gold); color: var(--ink); padding: 3px 3px 3px 10px; grid-column: span 2; }
+.opc.on .qty button { width: 36px; height: 34px; }
 .obs { color: var(--gt); font-size: 14px; text-decoration: underline; padding: 6px; }
 .nv { margin: 8px 0 0; font-size: 14px; font-style: italic; color: var(--yt); }
 .ni { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }

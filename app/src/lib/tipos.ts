@@ -10,7 +10,7 @@ export interface Mesa {
 export interface Categoria { id: string; nombre: string; orden: number }
 export interface Producto {
   id: string; categoria_id: string; nombre: string; descripcion: string | null;
-  precio: number; estado: 'activo' | 'agotado' | 'inactivo'; orden: number;
+  precio: number; estado: 'activo' | 'agotado' | 'inactivo'; orden: number; opciones: string[];
 }
 export interface Cuenta {
   id: string; folio: number; tipo: 'mesa' | 'llevar'; mesa_id: string | null;
@@ -19,7 +19,7 @@ export interface Cuenta {
 }
 export interface Linea {
   id: string; cuenta_id: string; producto_id: string; nombre_producto: string; precio_unitario: number;
-  cantidad: number; observacion: string | null; estado: 'activa' | 'cancelada';
+  cantidad: number; observacion: string | null; opcion: string | null; estado: 'activa' | 'cancelada';
   cancelacion_motivo: string | null; enviada_en: string | null; reemplaza_linea_id: string | null; creado_en: string;
 }
 export interface Usuario {

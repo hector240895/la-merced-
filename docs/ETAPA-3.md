@@ -30,6 +30,7 @@
 | --- | --- |
 | `20261101000100_mesas_pedidos.sql` | Funciones de mesas y pedidos, administración de mesas, tiempo real y un solo aviso por acción entre propietarios |
 | `20261101000200_menu.sql` | Menú de La Merced: 57 productos en 10 categorías, tomados de la carta (MENU_1.pdf) |
+| `20261102000100_opciones_sabores.sql` | Opciones para elegir en un producto (sabores de aguas y refrescos) |
 
 ## Reglas nuevas que cuida el servidor
 
@@ -101,7 +102,7 @@ Abre la dirección en el celular:
 
 ## Pruebas automáticas (en esta etapa)
 
-- 49 pruebas de la Etapa 2 y 40 de la Etapa 3 sobre la base de datos (`supabase/tests/database/`).
+- 49 pruebas de la Etapa 2, 40 de la Etapa 3 y 9 de sabores sobre la base de datos (`supabase/tests/database/`).
 - 19 comprobaciones de la app en un navegador real, con un celular y dos computadoras a la vez (`app/pruebas/salon.e2e.cjs`).
 - Todas pasan contra la copia local de Supabase.
 
@@ -116,7 +117,11 @@ Abre la dirección en el celular:
 
 - **Guisados:** el mesero los anota en la observación. Cada platillo con guisado muestra la lista: deshebrada, papas con chorizo, chicharrón prensado verde, requesón con rajas, champiñones o pollo.
 - **Opciones separadas:** donde la carta junta opciones que cocina prepara distinto, van como productos separados con el mismo precio. Son las medias órdenes "de pollo / queso" y "deshebrada / requesón", y los tamales rojo, verde y de prensado con queso.
-- **Sabor de refrescos, aguas y Arizona:** se anota en la observación.
+- **Sabores para elegir con botón** (obligatorio elegir uno; cada sabor queda en su propia línea y saldrá en la comanda):
+  - Agua de sabor (500 ml y 900 ml): Horchata o Jamaica.
+  - Refresco de vidrio (355 ml, $25): Pepsi, Pepsi Black, Agua mineral, Mirinda, Jumex, 7UP, Jarrito tamarindo, Jarrito tutti frutti, Jarrito piña, Manzanita, Sangría.
+  - Refresco desechable (600 ml, $30): Coca-Cola o Coca-Cola Light.
+- **Sabor del Arizona:** se anota en la observación.
 - **"De pollo (extra $5)" del pozole:** es el producto *Pozole de pollo (extra)*, que se agrega junto al pozole.
 - **"Solo viernes, sábado y domingo" y "Solo viernes y sábado":** aparece en la descripción. Desde la Etapa 7 podrás marcarlos como agotados los demás días.
 - **"Todos nuestros platillos son preparados con lechuga, crema y queso":** los cambios ("sin crema") van en la observación.
