@@ -76,8 +76,8 @@ export type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia';
 export const METODO: Record<MetodoPago, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia' };
 export interface CobroExtra { id: string; cuenta_id: string; concepto: string; importe: number; estado: 'activa' | 'cancelada'; cancelacion_motivo: string | null }
 export interface ContenidoTicket {
-  documento: 'ticket'; negocio: string; direccion: string | null; telefonos: string | null; leyenda: string | null;
-  folio: number; destino: string; para_llevar: boolean; mesero: string | null; cajero: string | null; fecha: string; hora: string;
+  documento: 'ticket'; negocio: string; leyenda: string | null;
+  folio: number; para_llevar: boolean; fecha: string; hora: string;
   lineas: { cantidad: number; producto: string; opcion: string | null; precio_unitario: number; importe: number }[];
   extras: { concepto: string; importe: number }[];
   subtotal: number; impuestos: number; total: number;

@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(49);
+select plan(50);
 
 create function pg_temp.como(p_id uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true),
@@ -125,10 +125,10 @@ select is((select documento || '/' || impresora from trabajos_impresion
            where cuenta_id = (select valor::uuid from v where clave = 'llevar') and documento = 'ticket'), 'ticket/caja',
   'El cobro manda el ticket a la impresora de caja');
 select ok((select contenido ->> 'negocio' = 'Cenaduría La Merced'
-              and contenido ->> 'direccion' = 'Av. Fundición 2103, San Cayetano, 20010 Aguascalientes, Ags.'
-              and contenido ->> 'telefonos' = '449 940 44 90 / 449 181 31 21'
               and contenido ->> 'fecha' ~ '^\d\d/\d\d/\d{4}$' and contenido ->> 'hora' ~ '^\d\d:\d\d$'
-           from trabajos_impresion where documento = 'ticket'), 'El ticket lleva negocio, dirección, teléfonos, fecha y hora');
+           from trabajos_impresion where documento = 'ticket'), 'El ticket lleva negocio, fecha y hora');
+select ok((select not (contenido ?| array['direccion', 'telefonos', 'destino', 'mesero', 'cajero'])
+           from trabajos_impresion where documento = 'ticket'), 'El ticket no lleva mesa, mesero, cajero, dirección ni teléfonos');
 select ok((select contenido -> 'lineas' @> '[{"cantidad": 2, "producto": "Café de olla", "precio_unitario": 30.00, "importe": 60.00}]'
               and contenido -> 'extras' @> '[{"concepto": "Salsa extra para llevar", "importe": 40.00}]'
               and (contenido ->> 'total')::numeric = 100

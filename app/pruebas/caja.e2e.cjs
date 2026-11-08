@@ -109,12 +109,15 @@ const cuenta = (page, texto) => page.locator('.acc', { hasText: texto });
     await captura(laura, '21-caja-cobro');
     await laura.getByRole('button', { name: 'Cobrar e imprimir ticket' }).click();
   });
-  await comprobar('Sale el ticket con el negocio, la dirección, el total y el cambio', async () => {
+  await comprobar('Sale el ticket simple: negocio, fecha, folio, productos, total y cambio (sin mesa, mesero, cajero, dirección ni teléfonos)', async () => {
     const papel = laura.locator('.papel');
     await laura.locator('.cambio-grande', { hasText: 'Cambio: $30' }).waitFor();
     await papel.getByText('Cenaduría La Merced').waitFor();
-    await papel.getByText('Av. Fundición 2103, San Cayetano, 20010 Aguascalientes, Ags.').waitFor();
-    await papel.getByText('Tel. 449 940 44 90 / 449 181 31 21').waitFor();
+    await papel.getByText('Para llevar', { exact: true }).waitFor();
+    const texto = await papel.innerText();
+    for (const fuera of ['Fundición', '449', 'Mesero', 'Le atendió']) {
+      if (texto.includes(fuera)) throw new Error(`El ticket todavía muestra "${fuera}"`);
+    }
     await papel.locator('.t-total', { hasText: '$100' }).waitFor();
     await papel.getByText('Extra: Salsa extra para llevar').waitFor();
     await captura(laura, '22-ticket');

@@ -9,11 +9,9 @@ export function VistaTicket({ t, cambio, cerrar }: { t: ContenidoTicket; cambio?
         <div className="papel angosto">
           {t.reimpresion && <p className="p-marca">REIMPRESIÓN{t.reimprimio ? ` · ${t.reimprimio}` : ''}</p>}
           <p className="p-titulo">{t.negocio}</p>
-          {t.direccion && <p className="p-meta">{t.direccion}</p>}
-          {t.telefonos && <p className="p-meta">Tel. {t.telefonos}</p>}
           <hr />
           <p className="p-meta">{t.fecha} {t.hora} · Folio {t.folio}</p>
-          <p className="p-meta">{t.destino}{t.mesero ? ` · Mesero: ${t.mesero}` : ''}</p>
+          {t.para_llevar && <p className="p-meta">Para llevar</p>}
           <hr />
           {t.lineas.map((l, i) => (
             <div key={i} className="t-linea">
@@ -34,7 +32,6 @@ export function VistaTicket({ t, cambio, cerrar }: { t: ContenidoTicket; cambio?
             </div>
           ))}
           {t.propina && <div className="t-linea"><span>Propina ({METODO[t.propina.metodo].toLowerCase()})</span><span>{dinero(t.propina.importe)}</span></div>}
-          {t.cajero && <p className="p-meta" style={{ marginTop: 8 }}>Le atendió en caja: {t.cajero}</p>}
           {t.leyenda && <p className="p-titulo" style={{ marginTop: 8 }}>{t.leyenda}</p>}
         </div>
         <button className="sec" style={{ background: 'var(--card)' }} onClick={cerrar}>Cerrar</button>

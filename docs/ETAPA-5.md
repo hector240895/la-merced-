@@ -19,10 +19,9 @@
   - **Quitar productos** antes del cobro, con motivo.
   - **Sin cobros duplicados**, aunque se toque "Cobrar" dos veces.
   - Al cobrar, la mesa queda **libre** (y separada si estaba unida).
-- **Ticket** para la impresora de caja (58 mm), con vista previa en pantalla y reimpresión registrada. Lleva:
-  - Cenaduría La Merced, la dirección (Av. Fundición 2103, San Cayetano, 20010 Aguascalientes, Ags.), los teléfonos, la fecha y la hora.
-  - El folio, la mesa o "Para llevar", el mesero y los productos con su precio.
-  - Los cobros extra, el total, los pagos, lo recibido, el cambio, la propina y "¡Gracias por su visita!".
+- **Ticket** para la impresora de caja (58 mm), con vista previa en pantalla y reimpresión registrada. Desde el 8 de noviembre es **simple**:
+  - Lleva: Cenaduría La Merced, fecha, hora, folio, "Para llevar" cuando aplica, productos con precio, cobros extra, total, pagos, lo recibido, el cambio, la propina y "¡Gracias por su visita!".
+  - Ya no lleva mesa, mesero, quién atendió en caja, dirección ni teléfonos (`20261111000100_ticket_simple.sql`).
 - **Entradas y retiros de efectivo** con motivo obligatorio.
 - **Corte de caja** (uno al día):
   - Muestra el fondo, los cobros por método, las entradas, los retiros y las devoluciones en efectivo.
@@ -43,6 +42,7 @@
 | Archivo | Contenido |
 | --- | --- |
 | `20261110000100_caja.sql` | Pedidos para llevar, caja, cobro, ticket, devoluciones, corte, permisos y tiempo real |
+| `20261111000100_ticket_simple.sql` | Ticket más simple |
 
 ## Cómo subirlo
 
@@ -67,7 +67,7 @@ Necesitas una cuenta de **cajero**. Créala en *Usuarios*, con el perfil Cajero.
    - Agrega un **cobro extra** "Salsa extra" de $40. El total sube a $100.
    - Pago **Efectivo** $60 con "Con cuánto paga" $100, y luego **Tarjeta** (se llena solo con $40).
    - Propina $10 en efectivo: debe decir **"Cambio: $30"**.
-   - Toca **Cobrar e imprimir ticket**. Revisa que el ticket traiga tu dirección, los productos, el total y el cambio.
+   - Toca **Cobrar e imprimir ticket**. Revisa que el ticket traiga los productos, el total y el cambio, sin mesa, mesero, dirección ni teléfonos.
 4. **Cobrar una mesa.** El mesero toma un pedido en la Mesa 1. En caja dice "El cobro se habilita cuando el mesero pide la cuenta". Cuando la pida, cóbrala: la Mesa 1 queda **Disponible** en el celular.
 5. **Corte.** En **Caja y corte**:
    - Registra un retiro de $30 "Compra de hielo".
