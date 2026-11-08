@@ -80,9 +80,7 @@ export interface ContenidoTicket {
   folio: number; para_llevar: boolean; fecha: string; hora: string;
   lineas: { cantidad: number; producto: string; opcion: string | null; precio_unitario: number; importe: number }[];
   extras: { concepto: string; importe: number }[];
-  subtotal: number; impuestos: number; total: number;
-  pagos: { metodo: MetodoPago; importe: number; recibido: number | null; cambio: number | null }[];
-  propina: { metodo: MetodoPago; importe: number } | null;
+  total: number; recibido: number | null; cambio: number | null;
   reimpresion?: boolean; reimprimio?: string;
 }
 export interface Resumen {

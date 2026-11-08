@@ -133,8 +133,10 @@ select ok((select contenido -> 'lineas' @> '[{"cantidad": 2, "producto": "Café 
               and contenido -> 'extras' @> '[{"concepto": "Salsa extra para llevar", "importe": 40.00}]'
               and (contenido ->> 'total')::numeric = 100
            from trabajos_impresion where documento = 'ticket'), 'El ticket lleva productos con precio, cobro extra y total');
-select ok((select contenido -> 'pagos' @> '[{"metodo": "efectivo", "importe": 60.00, "recibido": 100.00, "cambio": 30.00}]'
-           from trabajos_impresion where documento = 'ticket'), 'El ticket lleva el pago, lo recibido y el cambio');
+select ok((select (contenido ->> 'recibido')::numeric = 100 and (contenido ->> 'cambio')::numeric = 30
+              and not (contenido ?| array['pagos', 'propina', 'subtotal', 'impuestos'])
+           from trabajos_impresion where documento = 'ticket'),
+  'El ticket lleva total, recibido y cambio; sin métodos de pago ni propina');
 select lives_ok($$ select public.reimprimir_ticket((select valor::uuid from v where clave = 'llevar')) $$,
   'La caja reimprime el ticket');
 reset role;

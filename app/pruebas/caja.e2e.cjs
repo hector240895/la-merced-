@@ -109,13 +109,15 @@ const cuenta = (page, texto) => page.locator('.acc', { hasText: texto });
     await captura(laura, '21-caja-cobro');
     await laura.getByRole('button', { name: 'Cobrar e imprimir ticket' }).click();
   });
-  await comprobar('Sale el ticket simple: negocio, fecha, folio, productos, total y cambio (sin mesa, mesero, cajero, dirección ni teléfonos)', async () => {
+  await comprobar('Sale el ticket simple: negocio, fecha, folio, productos, total, recibido y cambio', async () => {
     const papel = laura.locator('.papel');
     await laura.locator('.cambio-grande', { hasText: 'Cambio: $30' }).waitFor();
     await papel.getByText('Cenaduría La Merced').waitFor();
     await papel.getByText('Para llevar', { exact: true }).waitFor();
     const texto = await papel.innerText();
-    for (const fuera of ['Fundición', '449', 'Mesero', 'Le atendió']) {
+    await papel.locator('.t-linea', { hasText: 'Recibido' }).getByText('$100').waitFor();
+    await papel.locator('.t-linea', { hasText: 'Cambio' }).getByText('$30').waitFor();
+    for (const fuera of ['Fundición', '449', 'Mesero', 'Le atendió', 'Propina', 'Tarjeta', 'Efectivo']) {
       if (texto.includes(fuera)) throw new Error(`El ticket todavía muestra "${fuera}"`);
     }
     await papel.locator('.t-total', { hasText: '$100' }).waitFor();

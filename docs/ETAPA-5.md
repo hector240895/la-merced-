@@ -20,7 +20,8 @@
   - **Sin cobros duplicados**, aunque se toque "Cobrar" dos veces.
   - Al cobrar, la mesa queda **libre** (y separada si estaba unida).
 - **Ticket** para la impresora de caja (58 mm), con vista previa en pantalla y reimpresión registrada. Desde el 8 de noviembre es **simple**:
-  - Lleva: Cenaduría La Merced, fecha, hora, folio, "Para llevar" cuando aplica, productos con precio, cobros extra, total, pagos, lo recibido, el cambio, la propina y "¡Gracias por su visita!".
+  - Lleva: Cenaduría La Merced, fecha, hora, folio, "Para llevar" cuando aplica, productos con precio, cobros extra, **total**, y si pagó en efectivo **recibido** y **cambio**, y "¡Gracias por su visita!".
+  - No muestra los métodos de pago ni la propina (`20261111000200_ticket_total_cambio.sql`); siguen registrados en el sistema y en el corte.
   - Ya no lleva mesa, mesero, quién atendió en caja, dirección ni teléfonos (`20261111000100_ticket_simple.sql`).
 - **Entradas y retiros de efectivo** con motivo obligatorio.
 - **Corte de caja** (uno al día):
@@ -43,6 +44,7 @@
 | --- | --- |
 | `20261110000100_caja.sql` | Pedidos para llevar, caja, cobro, ticket, devoluciones, corte, permisos y tiempo real |
 | `20261111000100_ticket_simple.sql` | Ticket más simple |
+| `20261111000200_ticket_total_cambio.sql` | Ticket: solo total, recibido y cambio |
 
 ## Cómo subirlo
 

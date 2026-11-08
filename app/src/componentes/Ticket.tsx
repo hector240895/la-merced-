@@ -1,4 +1,4 @@
-import { METODO, dinero, type ContenidoTicket, type Resumen } from '../lib/tipos';
+import { dinero, type ContenidoTicket, type Resumen } from '../lib/tipos';
 
 // Vista previa del ticket tal como sale en la impresora de caja (58 mm).
 export function VistaTicket({ t, cambio, cerrar }: { t: ContenidoTicket; cambio?: number; cerrar: () => void }) {
@@ -24,14 +24,8 @@ export function VistaTicket({ t, cambio, cerrar }: { t: ContenidoTicket; cambio?
           ))}
           <hr />
           <div className="t-linea t-total"><span>TOTAL</span><span>{dinero(t.total)}</span></div>
-          {t.pagos.map((p, i) => (
-            <div key={`p${i}`}>
-              <div className="t-linea"><span>{METODO[p.metodo]}</span><span>{dinero(p.importe)}</span></div>
-              {p.recibido != null && <div className="t-linea"><span>Recibido</span><span>{dinero(p.recibido)}</span></div>}
-              {p.cambio != null && <div className="t-linea"><span>Cambio</span><span>{dinero(p.cambio)}</span></div>}
-            </div>
-          ))}
-          {t.propina && <div className="t-linea"><span>Propina ({METODO[t.propina.metodo].toLowerCase()})</span><span>{dinero(t.propina.importe)}</span></div>}
+          {t.recibido != null && <div className="t-linea"><span>Recibido</span><span>{dinero(t.recibido)}</span></div>}
+          {t.cambio != null && <div className="t-linea"><span>Cambio</span><span>{dinero(t.cambio)}</span></div>}
           {t.leyenda && <p className="p-titulo" style={{ marginTop: 8 }}>{t.leyenda}</p>}
         </div>
         <button className="sec" style={{ background: 'var(--card)' }} onClick={cerrar}>Cerrar</button>
