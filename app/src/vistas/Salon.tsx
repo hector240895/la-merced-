@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { llamar, mensajeDe, supabase } from '../lib/supabase';
 import { useEnVivo } from '../lib/vivo';
 import { useAviso } from '../componentes/Aviso';
+import { EstadoImp } from '../componentes/Comanda';
+import ListaComandas from '../componentes/ListaComandas';
 import {
-  ESTADO_MESA, dinero, type Categoria, type Cuenta, type Linea, type Mesa, type Producto, type Yo,
+  CAMPOS_TRABAJO, ESTADO_MESA, dinero, estadoDeComandas, type Categoria, type Cuenta, type Linea, type Mesa, type Producto,
+  type Trabajo, type Yo,
 } from '../lib/tipos';
 
 // Pedido que el mesero va armando antes de enviarlo. Se guarda en el teléfono
@@ -20,13 +23,14 @@ function leerBorradores(): Borradores {
   try { return JSON.parse(localStorage.getItem(CLAVE_BORRADORES) ?? '{}'); } catch { return {}; }
 }
 
-interface Grupo { principal: Mesa; miembros: Mesa[]; nombre: string; cuenta?: Cuenta; lineas: Linea[] }
+interface Grupo { principal: Mesa; miembros: Mesa[]; nombre: string; cuenta?: Cuenta; lineas: Linea[]; trabajos: Trabajo[] }
 
 export default function Salon({ yo, salir, dentroDePanel = false }: { yo: Yo; salir?: () => void; dentroDePanel?: boolean }) {
   const aviso = useAviso();
   const [mesas, setMesas] = useState<Mesa[]>([]);
   const [cuentas, setCuentas] = useState<Cuenta[]>([]);
   const [lineas, setLineas] = useState<Linea[]>([]);
+  const [trabajos, setTrabajos] = useState<Trabajo[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargado, setCargado] = useState(false);
@@ -60,17 +64,23 @@ export default function Salon({ yo, salir, dentroDePanel = false }: { yo: Yo; sa
           .in('cuenta_id', ids).order('creado_en')
       : { data: [], error: null };
     if (l.error) { setError(mensajeDe(l.error)); return; }
+    const t = ids.length
+      ? await supabase.from('trabajos_impresion').select(CAMPOS_TRABAJO)
+          .eq('documento', 'comanda').in('cuenta_id', ids).order('creado_en', { ascending: false })
+      : { data: [], error: null };
+    if (t.error) { setError(mensajeDe(t.error)); return; }
     setError('');
     setMesas(m.data as Mesa[]);
     setCuentas(c.data as Cuenta[]);
     setCategorias(k.data as Categoria[]);
     setProductos(p.data as Producto[]);
     setLineas(l.data as Linea[]);
+    setTrabajos(t.data as unknown as Trabajo[]);
     setCargado(true);
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
-  useEnVivo(['mesas', 'cuentas', 'lineas_cuenta'], cargar);
+  useEnVivo(['mesas', 'cuentas', 'lineas_cuenta', 'trabajos_impresion'], cargar);
 
   const grupos = useMemo<Grupo[]>(() => mesas.filter((m) => !m.unida_a).map((principal) => {
     const miembros = [principal, ...mesas.filter((m) => m.unida_a === principal.id)];
@@ -79,8 +89,9 @@ export default function Salon({ yo, salir, dentroDePanel = false }: { yo: Yo; sa
       principal, miembros, cuenta,
       nombre: miembros.map((m) => m.nombre).join(' + '),
       lineas: cuenta ? lineas.filter((l) => l.cuenta_id === cuenta.id) : [],
+      trabajos: cuenta ? trabajos.filter((t) => t.cuenta_id === cuenta.id) : [],
     };
-  }), [mesas, cuentas, lineas]);
+  }), [mesas, cuentas, lineas, trabajos]);
 
   const precio = useMemo(() => Object.fromEntries(productos.map((p) => [p.id, p])), [productos]);
   const totalActivo = (g: Grupo) => g.lineas.filter((l) => l.estado === 'activa')
@@ -208,6 +219,7 @@ export default function Salon({ yo, salir, dentroDePanel = false }: { yo: Yo; sa
                     {g.cuenta ? `${piezas(g)} productos · ${dinero(totalActivo(g))}` : 'Sin pedido'}
                     {borrador ? ` · ${borrador} sin enviar` : ''}
                   </small>
+                  {estadoDeComandas(g.trabajos) && <EstadoImp estado={estadoDeComandas(g.trabajos)!} />}
                 </button>
                 {g.miembros.length > 1 && !uniendo && (
                   <button className="sep" disabled={ocupado}
@@ -275,7 +287,7 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
     guardarBorrador({ ...borrador, solicitud });
     const ok = await accion(() => llamar('enviar_pedido', {
       p_mesa_id: grupo.principal.id, p_productos: items, p_solicitud_id: solicitud,
-    }), enviadas.length ? 'Pedido adicional enviado a cocina' : 'Pedido enviado a cocina');
+    }), enviadas.length ? 'Pedido adicional enviado. La comanda va a la impresora de cocina.' : 'Pedido enviado. La comanda va a la impresora de cocina.');
     if (ok) {
       guardarBorrador({ items: [] });
       setHoja(false);
@@ -314,6 +326,19 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
       )}
 
       <main>
+        {grupo.trabajos.some((t) => t.estado === 'error') && (
+          <>
+            <p className="lock er">Una comanda no se imprimió. Revisa la impresora de cocina y vuelve a intentar.</p>
+            <button className="cta" style={{ margin: '0 0 16px' }} disabled={ocupado}
+                    onClick={() => accion(async () => {
+                      for (const t of grupo.trabajos.filter((x) => x.estado === 'error')) {
+                        await llamar('reintentar_impresion', { p_trabajo_id: t.id });
+                      }
+                    }, 'Comanda enviada de nuevo a la impresora')}>
+              Reintentar impresión
+            </button>
+          </>
+        )}
         {bloqueada && <p className="lock">Cuenta solicitada. El cajero registrará el cobro y liberará la mesa.</p>}
         {!bloqueada && productos.filter((p) => p.categoria_id === cat).map((p) => {
           const l = items.find((x) => mismo(x, p.id));
@@ -433,6 +458,12 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
             ))}
 
             <div className="tot"><span>Total acumulado</span><span>{dinero(total)}</span></div>
+            {grupo.trabajos.length > 0 && (
+              <>
+                <h3>Comandas a cocina</h3>
+                <ListaComandas trabajos={grupo.trabajos} accion={accion} ocupado={ocupado} />
+              </>
+            )}
             {borrador.solicitud && items.length > 0 && (
               <p className="lock er" style={{ marginTop: 12 }}>El envío anterior no se confirmó. Vuelve a enviar: no se duplicará.</p>
             )}

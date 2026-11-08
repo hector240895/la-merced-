@@ -6,8 +6,9 @@ import Salon from './Salon';
 import MesasAdmin from './propietario/MesasAdmin';
 import Usuarios from './propietario/Usuarios';
 import Autorizaciones from './propietario/Autorizaciones';
+import Comandas from './Comandas';
 
-type Pestana = 'salon' | 'mesas' | 'usuarios' | 'autorizaciones';
+type Pestana = 'salon' | 'comandas' | 'mesas' | 'usuarios' | 'autorizaciones';
 const CLAVE_PESTANA = 'la-merced-pestana';
 
 export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }) {
@@ -15,6 +16,7 @@ export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }
     try { return (localStorage.getItem(CLAVE_PESTANA) as Pestana) || 'salon'; } catch { return 'salon'; }
   });
   const [pendientes, setPendientes] = useState(0);
+  const [fallidas, setFallidas] = useState(0);
 
   useEffect(() => { try { localStorage.setItem(CLAVE_PESTANA, pestana); } catch { /* sin almacenamiento */ } }, [pestana]);
 
@@ -26,11 +28,19 @@ export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }
     ]);
     setPendientes((a.count ?? 0) + (v.count ?? 0));
   }, [yo.id]);
+
+  // Comandas que no se imprimieron: aviso en la pestaña Comandas.
+  const contarFallidas = useCallback(async () => {
+    const { count } = await supabase.from('trabajos_impresion').select('id', { count: 'exact', head: true }).eq('estado', 'error');
+    setFallidas(count ?? 0);
+  }, []);
+  useEffect(() => { contarFallidas(); }, [contarFallidas]);
+  useEnVivo(['trabajos_impresion'], contarFallidas);
   useEffect(() => { contar(); }, [contar]);
   useEnVivo(['autorizaciones', 'avisos'], contar);
 
   const pestanas: [Pestana, string][] = [
-    ['salon', 'Salón'], ['mesas', 'Mesas'], ['usuarios', 'Usuarios'], ['autorizaciones', 'Autorizaciones y avisos'],
+    ['salon', 'Salón'], ['comandas', 'Comandas'], ['mesas', 'Mesas'], ['usuarios', 'Usuarios'], ['autorizaciones', 'Autorizaciones y avisos'],
   ];
 
   return (
@@ -41,12 +51,14 @@ export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }
           {pestanas.map(([k, t]) => (
             <button key={k} className={pestana === k ? 'on' : ''} onClick={() => setPestana(k)}>
               {t}{k === 'autorizaciones' && pendientes > 0 && <span className="num">{pendientes}</span>}
+              {k === 'comandas' && fallidas > 0 && <span className="num">{fallidas}</span>}
             </button>
           ))}
         </nav>
         <span className="quien"><small>{yo.nombre} · Propietario</small><button className="salir" onClick={salir}>Salir</button></span>
       </header>
       {pestana === 'salon' && <Salon yo={yo} dentroDePanel />}
+      {pestana === 'comandas' && <main className="ancho"><Comandas /></main>}
       {pestana === 'mesas' && <main className="ancho"><MesasAdmin /></main>}
       {pestana === 'usuarios' && <main className="ancho"><Usuarios yo={yo} /></main>}
       {pestana === 'autorizaciones' && <main className="ancho"><Autorizaciones yo={yo} alCambiar={contar} /></main>}

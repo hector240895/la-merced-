@@ -5,11 +5,24 @@
 //
 //   node app/pruebas/salon.e2e.cjs <carpeta-capturas>
 const { chromium } = require('playwright');
+const { createClient } = require('@supabase/supabase-js');
 
 const APP = process.env.APP_URL ?? 'http://localhost:5173';
 const FUNCIONES = process.env.FUNCIONES_URL;
 const CLAVES = JSON.parse(process.env.CLAVES_PRUEBA);
 const CAPTURAS = process.argv[2];
+
+// Hace las veces del servicio de impresión de caja (Etapa 6): informa
+// "impresa" o "error" de la última comanda de una mesa.
+async function informarImpresion(destino, tipo, impreso, error) {
+  const c = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+  await c.auth.signInWithPassword({ email: 'hector@lamerced.local', password: CLAVES.hector });
+  const { data } = await c.from('trabajos_impresion').select('id, contenido').eq('estado', 'pendiente').order('creado_en', { ascending: false });
+  const t = data.find((x) => x.contenido.destino === destino && x.contenido.tipo === tipo);
+  if (!t) throw new Error(`No hay comanda ${tipo} pendiente de ${destino}`);
+  const r = await c.rpc('reportar_impresion', { p_trabajo_id: t.id, p_impreso: impreso, p_error: error ?? null });
+  if (r.error) throw new Error(r.error.message);
+}
 
 let n = 0;
 let fallas = 0;
@@ -103,7 +116,7 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
     await carlos.locator('.pane').getByText('2 × Agua de sabor (500 ml) · Jamaica').waitFor();
     await captura(carlos, '05-mesero-revisar');
     await carlos.getByRole('button', { name: 'Enviar a cocina' }).click();
-    await carlos.getByText('Pedido enviado a cocina').waitFor();
+    await carlos.getByText('Pedido enviado. La comanda va a la impresora de cocina.').waitFor();
     await tarjeta(carlos, 'Mesa 1').getByText('Pedido enviado').waitFor();
     await tarjeta(carlos, 'Mesa 1').getByText('5 productos · $225').waitFor();
     await captura(carlos, '06-mesero-enviado');
@@ -111,6 +124,29 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
 
   await comprobar('Hector ve la Mesa 1 con pedido enviado al instante, sin recargar', async () => {
     await tarjeta(hector, 'Mesa 1').getByText('Pedido enviado').waitFor({ timeout: 8000 });
+  });
+
+  await comprobar('La comanda queda pendiente de imprimir y se ve sin precios', async () => {
+    await tarjeta(carlos, 'Mesa 1').getByText('Pendiente de imprimir').waitFor();
+    await tarjeta(carlos, 'Mesa 1').locator('.tbl').click();
+    await carlos.getByRole('button', { name: /Revisar pedido/ }).click();
+    await carlos.getByText('Comandas a cocina').waitFor();
+    await carlos.locator('.cmd').getByRole('button', { name: 'Ver' }).click();
+    const papel = carlos.locator('.papel');
+    await papel.getByText('Mesa 1', { exact: true }).waitFor();
+    await papel.getByText('Mesero: Carlos Pérez').waitFor();
+    await papel.locator('.p-obs', { hasText: /sin lechuga/i }).waitFor();
+    await papel.locator('.p-opcion', { hasText: 'Jarrito tamarindo' }).waitFor();
+    if ((await papel.innerText()).includes('$')) throw new Error('La comanda muestra precios');
+    await captura(carlos, '05b-comanda-vista-previa');
+    await carlos.getByRole('button', { name: 'Cerrar' }).click();
+    await carlos.getByRole('button', { name: 'Seguir pidiendo' }).click();
+    await carlos.getByRole('button', { name: '‹ Mesas' }).click();
+  });
+
+  await comprobar('Cuando caja informa que se imprimió, el mesero lo ve al instante', async () => {
+    await informarImpresion('Mesa 1', 'nueva', true);
+    await tarjeta(carlos, 'Mesa 1').getByText('✓ Comanda impresa').waitFor({ timeout: 8000 });
   });
 
   await comprobar('Pedido adicional: solo lo nuevo se suma a la cuenta', async () => {
@@ -121,8 +157,31 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
     await carlos.getByText('Nueva comanda').waitFor();
     await carlos.getByText('Ya enviado a cocina').waitFor();
     await carlos.getByRole('button', { name: 'Enviar a cocina' }).click();
-    await carlos.getByText('Pedido adicional enviado a cocina').waitFor();
+    await carlos.getByText('Pedido adicional enviado. La comanda va a la impresora de cocina.').waitFor();
     await tarjeta(carlos, 'Mesa 1').getByText('6 productos · $270').waitFor();
+  });
+
+  await comprobar('Si la comanda falla, el mesero ve el error y la reintenta', async () => {
+    await informarImpresion('Mesa 1', 'adicional', false, 'Sin papel');
+    await tarjeta(carlos, 'Mesa 1').getByText('Error de impresión').waitFor({ timeout: 8000 });
+    await tarjeta(carlos, 'Mesa 1').locator('.tbl').click();
+    await carlos.getByText('Una comanda no se imprimió').waitFor();
+    await captura(carlos, '06b-error-impresion');
+    await carlos.getByRole('button', { name: 'Reintentar impresión' }).click();
+    await carlos.getByText('Comanda enviada de nuevo a la impresora').waitFor();
+    await carlos.getByRole('button', { name: '‹ Mesas' }).click();
+    await tarjeta(carlos, 'Mesa 1').getByText('Pendiente de imprimir').waitFor();
+    await informarImpresion('Mesa 1', 'adicional', true);
+  });
+
+  await comprobar('Caja y propietarios ven la cola de comandas; se puede reimprimir', async () => {
+    await hector.getByRole('button', { name: 'Comandas', exact: true }).click();
+    await hector.getByText('Impresas recientemente').waitFor();
+    await hector.locator('.cmd', { hasText: 'Mesa 1 · Comanda 1' }).getByRole('button', { name: 'Reimprimir' }).click();
+    await hector.getByText('Reimpresión enviada a cocina').waitFor();
+    await hector.locator('.cmd', { hasText: '(reimpresión de Hector Navarro)' }).first().waitFor();
+    await captura(hector, '06c-propietario-comandas');
+    await hector.getByRole('button', { name: 'Salón' }).click();
   });
 
   await comprobar('Carlos une la Mesa 1 con la Mesa 2', async () => {

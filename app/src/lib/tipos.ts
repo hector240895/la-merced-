@@ -37,3 +37,35 @@ export const dinero = (n: number) =>
 
 export const fechaHora = (iso: string) =>
   new Date(iso).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'medium', timeStyle: 'short' });
+
+// Comandas e impresión (Etapa 4)
+export interface LineaComanda {
+  cantidad: number; producto: string; opcion: string | null; observacion: string | null; leyenda: string | null;
+}
+export interface ContenidoComanda {
+  documento: 'comanda'; tipo: 'nueva' | 'adicional' | 'cancelacion' | 'modificacion'; numero: number; folio: number;
+  para_llevar: boolean; destino: string; usuario: string; fecha: string; hora: string; lineas: LineaComanda[];
+  reimpresion?: boolean; hora_reimpresion?: string; reimprimio?: string;
+}
+export type EstadoImpresion = 'pendiente' | 'enviado' | 'impreso' | 'error';
+export interface Trabajo {
+  id: string; comanda_id: string | null; cuenta_id: string | null; estado: EstadoImpresion; intentos: number;
+  ultimo_error: string | null; reimpresion_de: string | null; creado_en: string; impreso_en: string | null;
+  contenido: ContenidoComanda;
+}
+export const CAMPOS_TRABAJO = 'id, comanda_id, cuenta_id, estado, intentos, ultimo_error, reimpresion_de, creado_en, impreso_en, contenido';
+export const ESTADO_IMPRESION: Record<EstadoImpresion, string> = {
+  pendiente: 'Pendiente de imprimir', enviado: 'Imprimiendo…', impreso: '✓ Impresa', error: 'Error de impresión',
+};
+export const TIPO_COMANDA: Record<ContenidoComanda['tipo'], string> = {
+  nueva: 'Comanda', adicional: 'Adicional', cancelacion: 'Cancelación', modificacion: 'Modificación',
+};
+
+// Estado de impresión que resume varias comandas: lo más urgente primero.
+export function estadoDeComandas(trabajos: Trabajo[]): EstadoImpresion | null {
+  const originales = trabajos.filter((t) => !t.reimpresion_de);
+  if (!originales.length) return null;
+  if (trabajos.some((t) => t.estado === 'error')) return 'error';
+  if (trabajos.some((t) => t.estado === 'pendiente' || t.estado === 'enviado')) return 'pendiente';
+  return 'impreso';
+}

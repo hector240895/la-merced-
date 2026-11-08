@@ -12,8 +12,8 @@ mesas, comandas impresas, caja, catálogo, inventario manual, gastos y reportes.
 | # | Etapa | Estado |
 | --- | --- | --- |
 | 2 | Base de datos, usuarios, roles, permisos y auditoría | Terminada → [docs/ETAPA-2.md](docs/ETAPA-2.md) |
-| 3 | Mesas y pedidos | Lista para revisión → [docs/ETAPA-3.md](docs/ETAPA-3.md) |
-| 4 | Comandas | Pendiente |
+| 3 | Mesas y pedidos | Terminada → [docs/ETAPA-3.md](docs/ETAPA-3.md) |
+| 4 | Comandas | Lista para revisión → [docs/ETAPA-4.md](docs/ETAPA-4.md) |
 | 5 | Caja y pagos | Pendiente |
 | 6 | Impresoras | Pendiente |
 | 7 | Catálogo | Pendiente |

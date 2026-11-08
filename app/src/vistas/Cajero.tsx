@@ -1,6 +1,8 @@
 import type { Yo } from '../lib/tipos';
+import Comandas from './Comandas';
 
 // La pantalla de caja (cobros, pedidos para llevar, corte) llega en la Etapa 5.
+// Por ahora: la cola de comandas de cocina.
 export default function Cajero({ yo, salir }: { yo: Yo; salir: () => void }) {
   return (
     <>
@@ -13,6 +15,7 @@ export default function Cajero({ yo, salir }: { yo: Yo; salir: () => void }) {
           <h2>Caja</h2>
           <p className="note">La pantalla de cobros, pedidos para llevar y corte de caja se habilita en la Etapa 5.</p>
         </div>
+        <Comandas />
       </main>
     </>
   );
