@@ -240,6 +240,25 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
   });
 
   // ---------------------------------------------------------------- Administración de mesas
+  await comprobar('Plato Aguascalientes’n: guisado del sope, de la quesadillita y pata o cueritos; taco de guisado', async () => {
+    await tarjeta(carlos, 'Mesa 4').locator('.tbl').click();
+    await carlos.getByRole('button', { name: 'Antojitos', exact: true }).click();
+    await carlos.getByRole('button', { name: 'Agregar Plato Aguascalientes’n', exact: true }).click();
+    await carlos.getByLabel('guisado del sope de Plato Aguascalientes’n 1').selectOption('Champiñones');
+    await carlos.getByLabel('guisado de la quesadillita de Plato Aguascalientes’n 1').selectOption('Requesón con rajas');
+    await carlos.getByLabel('pata o cueritos de Plato Aguascalientes’n 1').selectOption('Cueritos');
+    await captura(carlos, '04d-plato-aguascalientes');
+    await carlos.getByRole('button', { name: 'Extras', exact: true }).click();
+    await producto(carlos, 'Taco de guisado').getByRole('button', { name: '+ Papas con chorizo' }).click();
+    await carlos.getByRole('button', { name: /Revisar pedido · 2 productos/ }).click();
+    await carlos.locator('.pane').getByText(
+      '1 × Plato Aguascalientes’n · Guisado del sope: Champiñones, Guisado de la quesadillita: Requesón con rajas, Pata o cueritos: Cueritos').waitFor();
+    await carlos.locator('.pane').getByText('1 × Taco de guisado · Papas con chorizo').waitFor();
+    await carlos.getByRole('button', { name: 'Enviar a cocina' }).click();
+    await carlos.getByText('Pedido enviado. La comanda va a la impresora de cocina.').waitFor();
+    await tarjeta(carlos, 'Mesa 4').getByText('2 productos · $167').waitFor();
+  });
+
   await hector.getByRole('button', { name: 'Mesas', exact: true }).click();
   await comprobar('Hector agrega la mesa Terraza', async () => {
     await hector.getByLabel('Nombre de la mesa nueva').fill('Terraza');

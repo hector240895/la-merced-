@@ -17,9 +17,18 @@ import {
 interface Pieza { id: string; producto_id: string; opciones: string[]; observacion: string }
 interface Borrador { items: Pieza[]; solicitud?: string }
 const nombreLinea = (nombre: string, opcion?: string | null) => (opcion ? `${nombre} · ${opcion}` : nombre);
-const textoOpciones = (x: Pieza) => x.opciones.filter(Boolean).join(', ');
+// Mismo texto que guarda el servidor: "Deshebrada, Pollo" o, si las selecciones
+// tienen nombres distintos, "Guisado del sope: Deshebrada, Pata o cueritos: Pata curtida".
+function textoPieza(x: Pieza, p?: Producto) {
+  const sel = p?.selecciones ?? [];
+  const conNombre = new Set(sel.map((s) => s.etiqueta)).size > 1;
+  return x.opciones.map((o, i) => (o && conNombre ? `${sel[i]?.etiqueta}: ${o}` : o)).filter(Boolean).join(', ');
+}
 const completa = (x: Pieza, p?: Producto) =>
-  !p || !p.opciones?.length || (x.opciones.length === p.cuantas_opciones && x.opciones.every(Boolean));
+  !p || !p.selecciones?.length || (x.opciones.length === p.selecciones.length && x.opciones.every(Boolean));
+// Nombre de la primera selección que falta elegir ("guisado", "pata o cueritos").
+const faltante = (x: Pieza, p?: Producto) =>
+  (p?.selecciones.find((_, i) => !x.opciones[i])?.etiqueta ?? 'opción').toLowerCase();
 type Borradores = Record<string, Borrador>;
 const CLAVE_BORRADORES = 'la-merced-borradores';
 
@@ -79,7 +88,7 @@ export default function Salon({ yo, salir, dentroDePanel = false }: { yo: Yo; sa
       supabase.from('cuentas').select('id, folio, tipo, mesa_id, estado, mesero_id, cobro_anulado_en')
         .eq('tipo', 'mesa').in('estado', ['abierta', 'por_cobrar']).is('cobro_anulado_en', null),
       supabase.from('categorias').select('id, nombre, orden').order('orden'),
-      supabase.from('productos').select('id, categoria_id, nombre, descripcion, precio, estado, orden, opciones, cuantas_opciones, nombre_opcion').order('orden'),
+      supabase.from('productos').select('id, categoria_id, nombre, descripcion, precio, estado, orden, selecciones').order('orden'),
     ]);
     const fallo = m.error ?? c.error ?? k.error ?? p.error;
     if (fallo) { setError(mensajeDe(fallo)); return; }
@@ -293,7 +302,7 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
 
   // Cambiar el pedido invalida el identificador de un envío anterior fallido.
   function agregar(p: Producto, opcion?: string) {
-    const opciones = p.opciones?.length ? Array.from({ length: p.cuantas_opciones }, (_, i) => (i === 0 && opcion) || '') : [];
+    const opciones = p.selecciones.map((_, i) => (i === 0 && opcion) || '');
     guardarBorrador({ items: [...items, { id: crypto.randomUUID(), producto_id: p.id, opciones, observacion: '' }] });
   }
   function quitarPieza(id: string) {
@@ -369,8 +378,9 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
         {!bloqueada && productos.filter((p) => p.categoria_id === cat).map((p) => {
           const mias = items.filter((x) => x.producto_id === p.id);
           const agotado = p.estado === 'agotado';
-          const unaOpcion = p.opciones?.length > 0 && p.cuantas_opciones === 1;
-          const varias = p.opciones?.length > 0 && p.cuantas_opciones > 1;
+          const unaOpcion = p.selecciones.length === 1;
+          const varias = p.selecciones.length > 1;
+          const repetidas = new Set(p.selecciones.map((x) => x.etiqueta)).size === 1;
           return (
             <div key={p.id} className={`prod ${mias.length ? 'has' : ''} ${agotado ? 'agotado' : ''}`}>
               <div className="rh">
@@ -384,21 +394,26 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
                       <div className="pieza-top">
                         <span>
                           {unaOpcion ? <><b>{n + 1}.</b> {x.opciones[0]}</>
-                            : varias ? <><b>{n + 1}.</b> {textoOpciones(x) || `Elige ${p.nombre_opcion}s`}</>
+                            : varias ? <><b>{n + 1}.</b> {textoPieza(x, p) || 'Elige las opciones'}</>
                             : <b>Pieza {n + 1}</b>}
                         </span>
                         <button className="rm" onClick={() => quitarPieza(x.id)} aria-label={`Quitar ${p.nombre} ${n + 1}`}>Quitar</button>
                       </div>
                       {varias && (
                         <div className="slots">
-                          {x.opciones.map((o, k) => (
-                            <select key={k} value={o} aria-label={`${p.nombre_opcion} ${k + 1} de ${p.nombre} ${n + 1}`}
-                                    className={o ? '' : 'vacio'}
-                                    onChange={(e) => cambiarPieza(x.id, { opciones: x.opciones.map((v, z) => (z === k ? e.target.value : v)) })}>
-                              <option value="">Elige {p.nombre_opcion} {k + 1}…</option>
-                              {p.opciones.map((op) => <option key={op} value={op}>{op}</option>)}
-                            </select>
-                          ))}
+                          {p.selecciones.map((sel, k) => {
+                            const nombre = sel.etiqueta.toLowerCase() + (repetidas ? ` ${k + 1}` : '');
+                            return (
+                              <select key={k} value={x.opciones[k] ?? ''} aria-label={`${nombre} de ${p.nombre} ${n + 1}`}
+                                      className={x.opciones[k] ? '' : 'vacio'}
+                                      onChange={(e) => cambiarPieza(x.id, {
+                                        opciones: p.selecciones.map((_, z) => (z === k ? e.target.value : x.opciones[z] ?? '')),
+                                      })}>
+                                <option value="">Elige {nombre}…</option>
+                                {sel.opciones.map((op) => <option key={op} value={op}>{op}</option>)}
+                              </select>
+                            );
+                          })}
                         </div>
                       )}
                       {x.observacion && notaDe !== x.id && <p className="nv">{x.observacion}</p>}
@@ -417,8 +432,8 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
                     </div>
                   ))}
                   {unaOpcion ? (
-                    <div className="opciones" role="group" aria-label={`${p.nombre_opcion} de ${p.nombre}`}>
-                      {p.opciones.map((o) => <button key={o} className="opc" onClick={() => agregar(p, o)}>+ {o}</button>)}
+                    <div className="opciones" role="group" aria-label={`${p.selecciones[0].etiqueta} de ${p.nombre}`}>
+                      {p.selecciones[0].opciones.map((o) => <button key={o} className="opc" onClick={() => agregar(p, o)}>+ {o}</button>)}
                     </div>
                   ) : (
                     <div className="rc">
@@ -482,9 +497,9 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
             {items.map((x) => (
               <div key={x.id} className="li">
                 <span>
-                  1 × {nombreLinea(precio[x.producto_id]?.nombre ?? 'Producto', textoOpciones(x))}
+                  1 × {nombreLinea(precio[x.producto_id]?.nombre ?? 'Producto', textoPieza(x, precio[x.producto_id]))}
                   {x.observacion && <small>{x.observacion}</small>}
-                  {!completa(x, precio[x.producto_id]) && <span className="falta"> Falta elegir {precio[x.producto_id]?.nombre_opcion}</span>}
+                  {!completa(x, precio[x.producto_id]) && <span className="falta"> Falta elegir {faltante(x, precio[x.producto_id])}</span>}
                   {' '}<button className="rm" onClick={() => quitarPieza(x.id)}>Quitar</button>
                 </span>
                 <span>{dinero(precio[x.producto_id]?.precio ?? 0)}</span>
@@ -503,7 +518,7 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
             )}
             {incompletas.length > 0 && (
               <p className="lock er" style={{ marginTop: 12 }}>
-                Falta elegir {precio[incompletas[0].producto_id]?.nombre_opcion} en {precio[incompletas[0].producto_id]?.nombre}.
+                Falta elegir {faltante(incompletas[0], precio[incompletas[0].producto_id])} en {precio[incompletas[0].producto_id]?.nombre}.
               </p>
             )}
             {items.length > 0 && (

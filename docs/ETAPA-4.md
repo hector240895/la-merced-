@@ -101,3 +101,12 @@ Las partes de "impresa", "error", "reintentar" y "reimprimir" necesitan el servi
 **Cada pieza por separado.** Cada vez que el mesero toca *Agregar*, la pieza se anota aparte, con **su propia observación** y sus propios guisados o sabor. Por ejemplo, 3 órdenes de enchiladas: una "Sin crema", otra "Sin cebolla" y otra sin cambios.
 
 Las piezas **idénticas** (mismo producto, mismos guisados o sabor y misma observación) se juntan al enviar en una sola línea, por ejemplo "2 × Agua de sabor (500 ml) · Jamaica". Así la comanda se lee más rápido y no se pierde ningún detalle. Desde "Revisar pedido" se puede quitar una de ellas.
+
+## Más cambios al menú (8 de noviembre de 2026)
+
+En `20261109000200_selecciones.sql`:
+
+- **Cada opción con su propia lista.** Un platillo puede pedir varias cosas distintas. Los sabores y guisados que ya existían pasaron tal cual.
+- **Plato Aguascalientes’n:** se elige el **guisado del sope**, el **guisado de la quesadillita** y **pata o cueritos** (Cueritos o Pata curtida). En la comanda sale así: "Guisado del sope: Champiñones, Guisado de la quesadillita: Requesón con rajas, Pata o cueritos: Cueritos".
+- **Taco de guisado:** nuevo, en Extras, a **$12**, con guisado para elegir.
+- **Quesadillitas sencillas:** nuevas, en Quesadillas, a **$70**, después de la orden de quesadillitas.

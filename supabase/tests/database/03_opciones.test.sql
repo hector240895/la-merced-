@@ -25,11 +25,11 @@ select (select id from mesas where nombre = 'Mesa 1') m1,
        (select id from productos where nombre = 'Café de olla') cafe;
 grant select on ids to authenticated;
 
-select is((select opciones from productos where nombre = 'Agua de sabor (900 ml)'), array['Horchata', 'Jamaica'],
+select is((select selecciones -> 0 -> 'opciones' from productos where nombre = 'Agua de sabor (900 ml)'), '["Horchata", "Jamaica"]'::jsonb,
   'El agua de 900 ml tiene horchata y jamaica');
-select is((select cardinality(opciones) from productos where nombre = 'Refresco de vidrio (355 ml)'), 11,
+select is((select jsonb_array_length(selecciones -> 0 -> 'opciones') from productos where nombre = 'Refresco de vidrio (355 ml)'), 11,
   'El refresco de vidrio tiene 11 sabores');
-select is((select opciones from productos where nombre = 'Arizona'), array['Té verde', 'Mango', 'Kiwi', 'Sandía'],
+select is((select selecciones -> 0 -> 'opciones' from productos where nombre = 'Arizona'), '["Té verde", "Mango", "Kiwi", "Sandía"]'::jsonb,
   'El Arizona tiene sus 4 sabores');
 
 select pg_temp.como('33333333-3333-3333-3333-333333333333');

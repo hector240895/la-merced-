@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(12);
+select plan(17);
 
 create function pg_temp.como(p_id uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true),
@@ -26,15 +26,19 @@ select (select id from mesas where nombre = 'Mesa 1') m1,
        (select id from productos where nombre = 'Tostada con guisado') tostada,
        (select id from productos where nombre = 'Enchiladas rojas con pollo') enchiladas;
 grant select on t to authenticated;
+create temp table t_plato (id uuid);
+grant select on t_plato to authenticated;
 
-select is((select opciones from productos where nombre = 'Sope con guisado (1 pz)'),
-  array['Deshebrada', 'Papas con chorizo', 'Chicharrón prensado', 'Requesón con rajas', 'Champiñones', 'Pollo'],
+select is((select selecciones -> 0 -> 'opciones' from productos where nombre = 'Sope con guisado (1 pz)'),
+  '["Deshebrada", "Papas con chorizo", "Chicharrón prensado", "Requesón con rajas", "Champiñones", "Pollo"]'::jsonb,
   'Los 6 guisados están en la lista');
-select is((select count(*)::int from productos where nombre_opcion = 'guisado'), 8, 'Ocho platillos eligen guisado');
-select is((select string_agg(nombre || '=' || cuantas_opciones, ', ' order by nombre) from productos where cuantas_opciones > 1),
-  'Orden de quesadillitas (3 pz)=3, Orden de sopes con guisado (3 pz)=3, Quesadilla (2 guisados)=2',
-  'Las órdenes de sopes y quesadillitas llevan 3 guisados; la quesadilla de 2, dos');
-select is((select opciones from productos where nombre = 'Agua de sabor (500 ml)'), array['Horchata', 'Jamaica'],
+select is((select count(*)::int from productos where selecciones @> '[{"etiqueta": "Guisado"}]'), 9,
+  'Nueve platillos eligen guisado (incluido el taco de guisado)');
+select is((select string_agg(nombre || '=' || jsonb_array_length(selecciones), ', ' order by nombre) from productos
+           where jsonb_array_length(selecciones) > 1),
+  'Orden de quesadillitas (3 pz)=3, Orden de sopes con guisado (3 pz)=3, Plato Aguascalientes’n=3, Quesadilla (2 guisados)=2',
+  'Sopes, quesadillitas y el plato Aguascalientes’n llevan 3 selecciones; la quesadilla de 2, dos');
+select is((select selecciones -> 0 -> 'opciones' from productos where nombre = 'Agua de sabor (500 ml)'), '["Horchata", "Jamaica"]'::jsonb,
   'Los sabores de bebidas no cambian');
 
 select pg_temp.como('33333333-3333-3333-3333-333333333333');
@@ -70,6 +74,26 @@ select ok((select contenido -> 'lineas' @> '[{"producto": "Orden de sopes con gu
            from trabajos_impresion), 'La comanda dice los guisados');
 select is((select jsonb_array_length(contenido -> 'lineas') from trabajos_impresion), 5,
   'La comanda lleva cada pieza con su observación');
+
+-- Plato Aguascalientes’n: tres listas distintas.
+insert into t_plato select id from productos where nombre = 'Plato Aguascalientes’n';
+select pg_temp.como('33333333-3333-3333-3333-333333333333');
+select throws_ok($$ select public.enviar_pedido((select m1 from t), jsonb_build_array(
+  jsonb_build_object('producto_id', (select id from t_plato), 'cantidad', 1, 'opciones', array['Pollo', 'Pollo'])), gen_random_uuid()) $$,
+  'Completa las opciones de Plato Aguascalientes’n', 'El plato exige sus tres selecciones');
+select throws_ok($$ select public.enviar_pedido((select m1 from t), jsonb_build_array(
+  jsonb_build_object('producto_id', (select id from t_plato), 'cantidad', 1, 'opciones', array['Pollo', 'Pollo', 'Pollo'])), gen_random_uuid()) $$,
+  'Completa las opciones de Plato Aguascalientes’n', 'Cada selección acepta solo las opciones de su propia lista');
+select public.enviar_pedido((select m1 from t), jsonb_build_array(
+  jsonb_build_object('producto_id', (select id from t_plato), 'cantidad', 1, 'opciones', array['Deshebrada', 'Pollo', 'Pata curtida'])),
+  gen_random_uuid());
+reset role;
+select is((select opcion from lineas_cuenta where producto_id = (select id from t_plato)),
+  'Guisado del sope: Deshebrada, Guisado de la quesadillita: Pollo, Pata o cueritos: Pata curtida',
+  'La comanda dice qué guisado va en cada pieza y si es pata o cueritos');
+select is((select precio from productos where nombre = 'Taco de guisado'), 12.00, 'Taco de guisado a $12');
+select is((select k.nombre || ' · ' || p.precio || ' · ' || p.orden from productos p join categorias k on k.id = p.categoria_id
+           where p.nombre = 'Quesadillitas sencillas'), 'Quesadillas · 70.00 · 2', 'Quesadillitas sencillas a $70 en Quesadillas');
 
 select * from finish();
 rollback;
