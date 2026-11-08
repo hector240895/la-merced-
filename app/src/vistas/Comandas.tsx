@@ -3,23 +3,33 @@ import { mensajeDe, supabase } from '../lib/supabase';
 import { useEnVivo } from '../lib/vivo';
 import { useAviso } from '../componentes/Aviso';
 import ListaComandas from '../componentes/ListaComandas';
-import { CAMPOS_TRABAJO, type Trabajo } from '../lib/tipos';
+import { CAMPOS_TRABAJO, fechaHora, type Trabajo } from '../lib/tipos';
 
-// Cola de impresión de cocina: lo pendiente, lo que falló y lo reciente.
-// Caja y propietarios la ven; el servicio de impresión llega en la Etapa 6.
+interface Servicio {
+  ultimo_latido: string; equipo: string | null; pendientes: number;
+  impresoras: Record<string, { nombre: string; estado: string }>;
+}
+
+// Estado de las impresoras y cola de comandas de cocina: lo pendiente, lo que
+// falló y lo reciente. Caja y propietarios la ven.
 export default function Comandas() {
   const aviso = useAviso();
   const [trabajos, setTrabajos] = useState<Trabajo[]>([]);
   const [ocupado, setOcupado] = useState(false);
+  const [servicio, setServicio] = useState<Servicio | null | undefined>(undefined);
+  const [ahora, setAhora] = useState(Date.now());
+  useEffect(() => { const t = setInterval(() => setAhora(Date.now()), 10_000); return () => clearInterval(t); }, []);
 
   const cargar = useCallback(async () => {
     const { data, error } = await supabase.from('trabajos_impresion').select(CAMPOS_TRABAJO)
       .eq('documento', 'comanda').order('creado_en', { ascending: false }).limit(60);
     if (error) aviso(mensajeDe(error));
     else setTrabajos(data as unknown as Trabajo[]);
+    const s = await supabase.from('servicio_impresion').select('ultimo_latido, equipo, impresoras, pendientes').maybeSingle();
+    setServicio((s.data as Servicio | null) ?? null);
   }, [aviso]);
   useEffect(() => { cargar(); }, [cargar]);
-  useEnVivo(['trabajos_impresion'], cargar);
+  useEnVivo(['trabajos_impresion', 'servicio_impresion'], cargar);
 
   async function accion(fn: () => Promise<unknown>, exito?: string) {
     setOcupado(true);
@@ -31,8 +41,34 @@ export default function Comandas() {
   const errores = trabajos.filter((t) => t.estado === 'error');
   const pendientes = trabajos.filter((t) => t.estado === 'pendiente' || t.estado === 'enviado');
 
+  const conectado = servicio && ahora - new Date(servicio.ultimo_latido).getTime() < 60_000;
+  const conProblema = servicio && Object.values(servicio.impresoras ?? {}).some((i) => i.estado !== 'lista' && i.estado !== 'imprimiendo');
+
   return (
     <>
+      <div className="box" style={{ borderColor: conectado && !conProblema ? undefined : 'var(--er)' }}>
+        <h2>Impresoras</h2>
+        {servicio === undefined ? <p className="note">Revisando…</p>
+          : !servicio ? <p className="lock">El servicio de impresión todavía no se instala en la computadora de caja.</p>
+          : !conectado ? (
+            <p className="lock er">
+              Sin conexión con la computadora de caja desde {fechaHora(servicio.ultimo_latido)}. Las comandas esperan en la
+              cola y saldrán al volver. Revisa que la computadora esté encendida y con internet.
+            </p>
+          ) : (
+            <>
+              {Object.entries(servicio.impresoras ?? {}).sort(([a], [b]) => (a === 'cocina' ? -1 : b === 'cocina' ? 1 : 0)).map(([k, i]) => (
+                <div key={k} className="row">
+                  <span className="n"><b>{k === 'cocina' ? 'Cocina' : 'Caja'}</b><small>{i.nombre}</small></span>
+                  <span className={`chip ${i.estado === 'lista' || i.estado === 'imprimiendo' ? 'g' : 'r'}`}>
+                    {i.estado === 'lista' ? 'Lista' : i.estado.charAt(0).toUpperCase() + i.estado.slice(1)}
+                  </span>
+                </div>
+              ))}
+              <p className="note">Computadora de caja conectada ({servicio.equipo}).</p>
+            </>
+          )}
+      </div>
       {errores.length > 0 && (
         <div className="box" style={{ borderColor: 'var(--er)' }}>
           <h2>No se imprimieron · {errores.length}</h2>
@@ -44,10 +80,7 @@ export default function Comandas() {
         <h2>Pendientes de imprimir · {pendientes.length}</h2>
         {pendientes.length === 0 && <p className="note">No hay comandas en espera.</p>}
         <ListaComandas trabajos={pendientes} accion={accion} ocupado={ocupado} conDestino />
-        <p className="note">
-          La impresión automática en la impresora de cocina se activa en la Etapa 6. Mientras tanto, toca Ver para
-          leer la comanda en pantalla.
-        </p>
+        <p className="note">Si la impresora falla, toca Ver para leer la comanda en pantalla.</p>
       </div>
       <div className="box">
         <h2>Impresas recientemente</h2>

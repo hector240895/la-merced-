@@ -1,0 +1,15 @@
+{
+  "name": "la-merced-impresora",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servicio de impresión de Cenaduría La Merced (computadora de caja, Windows 11)",
+  "type": "module",
+  "scripts": {
+    "configurar": "node src/configurar.mjs",
+    "iniciar": "node src/servicio.mjs",
+    "probar": "node --test pruebas/*.test.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.75.0"
+  }
+}
