@@ -12,15 +12,41 @@ import {
 // Pedido que el mesero va armando antes de enviarlo. Se guarda en el teléfono
 // para no perderlo si se cierra la app; "solicitud" evita duplicar un envío
 // que se reintenta después de un corte de señal.
-interface Item { producto_id: string; opcion?: string; cantidad: number; observacion: string }
-interface Borrador { items: Item[]; solicitud?: string }
-const mismo = (x: Item, producto_id: string, opcion?: string) => x.producto_id === producto_id && (x.opcion ?? '') === (opcion ?? '');
+// Cada pieza se anota por separado, con su propia observación y sus propios
+// sabores o guisados. Al enviar, las piezas idénticas viajan juntas.
+interface Pieza { id: string; producto_id: string; opciones: string[]; observacion: string }
+interface Borrador { items: Pieza[]; solicitud?: string }
 const nombreLinea = (nombre: string, opcion?: string | null) => (opcion ? `${nombre} · ${opcion}` : nombre);
+const textoOpciones = (x: Pieza) => x.opciones.filter(Boolean).join(', ');
+const completa = (x: Pieza, p?: Producto) =>
+  !p || !p.opciones?.length || (x.opciones.length === p.cuantas_opciones && x.opciones.every(Boolean));
 type Borradores = Record<string, Borrador>;
 const CLAVE_BORRADORES = 'la-merced-borradores';
 
 function leerBorradores(): Borradores {
-  try { return JSON.parse(localStorage.getItem(CLAVE_BORRADORES) ?? '{}'); } catch { return {}; }
+  try {
+    const datos = JSON.parse(localStorage.getItem(CLAVE_BORRADORES) ?? '{}') as Record<string, { items: Record<string, unknown>[]; solicitud?: string }>;
+    // Borradores de la versión anterior (cantidad por producto): se pasan a piezas.
+    for (const b of Object.values(datos)) {
+      b.items = b.items.flatMap((x) => x.id ? [x] : Array.from({ length: Number(x.cantidad) || 1 }, () => ({
+        id: crypto.randomUUID(), producto_id: x.producto_id, opciones: x.opcion ? [x.opcion] : [], observacion: x.observacion ?? '',
+      })));
+    }
+    return datos as unknown as Borradores;
+  } catch { return {}; }
+}
+
+// Piezas idénticas (mismo producto, opciones y observación) se envían juntas.
+function agrupar(items: Pieza[]) {
+  const grupos = new Map<string, { producto_id: string; cantidad: number; observacion: string; opciones?: string[] }>();
+  for (const x of items) {
+    const clave = `${x.producto_id}|${x.opciones.join('|')}|${x.observacion.trim()}`;
+    const g = grupos.get(clave);
+    if (g) g.cantidad += 1;
+    else grupos.set(clave, { producto_id: x.producto_id, cantidad: 1, observacion: x.observacion.trim(),
+                             ...(x.opciones.length ? { opciones: x.opciones } : {}) });
+  }
+  return [...grupos.values()];
 }
 
 interface Grupo { principal: Mesa; miembros: Mesa[]; nombre: string; cuenta?: Cuenta; lineas: Linea[]; trabajos: Trabajo[] }
@@ -53,7 +79,7 @@ export default function Salon({ yo, salir, dentroDePanel = false }: { yo: Yo; sa
       supabase.from('cuentas').select('id, folio, tipo, mesa_id, estado, mesero_id, cobro_anulado_en')
         .eq('tipo', 'mesa').in('estado', ['abierta', 'por_cobrar']).is('cobro_anulado_en', null),
       supabase.from('categorias').select('id, nombre, orden').order('orden'),
-      supabase.from('productos').select('id, categoria_id, nombre, descripcion, precio, estado, orden, opciones').order('orden'),
+      supabase.from('productos').select('id, categoria_id, nombre, descripcion, precio, estado, orden, opciones, cuantas_opciones, nombre_opcion').order('orden'),
     ]);
     const fallo = m.error ?? c.error ?? k.error ?? p.error;
     if (fallo) { setError(mensajeDe(fallo)); return; }
@@ -134,11 +160,7 @@ export default function Salon({ yo, salir, dentroDePanel = false }: { yo: Yo; sa
         const y = { ...x };
         const juntos: Borrador['items'] = [];
         for (const id of [principal, ...elegidas.filter((e) => e !== principal)]) {
-          for (const it of y[id]?.items ?? []) {
-            const igual = juntos.find((j) => mismo(j, it.producto_id, it.opcion));
-            if (igual) igual.cantidad = Math.min(99, igual.cantidad + it.cantidad);
-            else juntos.push({ ...it });
-          }
+          juntos.push(...(y[id]?.items ?? []));
           delete y[id];
         }
         if (juntos.length) y[principal] = { items: juntos };
@@ -264,21 +286,25 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
   const enviadas = grupo.lineas.filter((l) => l.estado === 'activa');
   const canceladas = grupo.lineas.filter((l) => l.estado === 'cancelada');
   const items = borrador.items;
-  const totalBorrador = items.reduce((s, x) => s + (precio[x.producto_id]?.precio ?? 0) * x.cantidad, 0);
+  const totalBorrador = items.reduce((s, x) => s + (precio[x.producto_id]?.precio ?? 0), 0);
   const total = enviadas.reduce((s, l) => s + l.precio_unitario * l.cantidad, 0) + totalBorrador;
-  const piezas = enviadas.reduce((s, l) => s + l.cantidad, 0) + items.reduce((s, x) => s + x.cantidad, 0);
+  const piezas = enviadas.reduce((s, l) => s + l.cantidad, 0) + items.length;
+  const incompletas = items.filter((x) => !completa(x, precio[x.producto_id]));
 
-  function cambiar(producto_id: string, delta: number, opcion?: string) {
-    const lista = items.map((x) => ({ ...x }));
-    let l = lista.find((x) => mismo(x, producto_id, opcion));
-    if (!l) { l = { producto_id, opcion, cantidad: 0, observacion: '' }; lista.push(l); }
-    l.cantidad = Math.min(99, l.cantidad + delta);
-    // Cambiar el pedido invalida el identificador de un envío anterior fallido.
-    guardarBorrador({ items: lista.filter((x) => x.cantidad > 0) });
+  // Cambiar el pedido invalida el identificador de un envío anterior fallido.
+  function agregar(p: Producto, opcion?: string) {
+    const opciones = p.opciones?.length ? Array.from({ length: p.cuantas_opciones }, (_, i) => (i === 0 && opcion) || '') : [];
+    guardarBorrador({ items: [...items, { id: crypto.randomUUID(), producto_id: p.id, opciones, observacion: '' }] });
   }
-
-  function guardarNota(producto_id: string) {
-    guardarBorrador({ items: items.map((x) => mismo(x, producto_id) ? { ...x, observacion: nota.trim() } : x) });
+  function quitarPieza(id: string) {
+    guardarBorrador({ items: items.filter((x) => x.id !== id) });
+    if (notaDe === id) setNotaDe(null);
+  }
+  function cambiarPieza(id: string, cambio: Partial<Pieza>) {
+    guardarBorrador({ items: items.map((x) => (x.id === id ? { ...x, ...cambio } : x)) });
+  }
+  function guardarNota(id: string) {
+    cambiarPieza(id, { observacion: nota.trim() });
     setNotaDe(null);
   }
 
@@ -286,7 +312,7 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
     const solicitud = borrador.solicitud ?? crypto.randomUUID();
     guardarBorrador({ ...borrador, solicitud });
     const ok = await accion(() => llamar('enviar_pedido', {
-      p_mesa_id: grupo.principal.id, p_productos: items, p_solicitud_id: solicitud,
+      p_mesa_id: grupo.principal.id, p_productos: agrupar(items), p_solicitud_id: solicitud,
     }), enviadas.length ? 'Pedido adicional enviado. La comanda va a la impresora de cocina.' : 'Pedido enviado. La comanda va a la impresora de cocina.');
     if (ok) {
       guardarBorrador({ items: [] });
@@ -341,58 +367,65 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
         )}
         {bloqueada && <p className="lock">Cuenta solicitada. El cajero registrará el cobro y liberará la mesa.</p>}
         {!bloqueada && productos.filter((p) => p.categoria_id === cat).map((p) => {
-          const l = items.find((x) => mismo(x, p.id));
+          const mias = items.filter((x) => x.producto_id === p.id);
           const agotado = p.estado === 'agotado';
-          const conOpciones = p.opciones?.length > 0;
-          const elegidas = items.filter((x) => x.producto_id === p.id).length;
+          const unaOpcion = p.opciones?.length > 0 && p.cuantas_opciones === 1;
+          const varias = p.opciones?.length > 0 && p.cuantas_opciones > 1;
           return (
-            <div key={p.id} className={`prod ${l || elegidas ? 'has' : ''} ${agotado ? 'agotado' : ''}`}>
+            <div key={p.id} className={`prod ${mias.length ? 'has' : ''} ${agotado ? 'agotado' : ''}`}>
               <div className="rh">
                 <div><h3>{p.nombre}</h3>{p.descripcion && <p>{p.descripcion}</p>}</div>
                 <span className="pr">{dinero(p.precio)}</span>
               </div>
-              {agotado ? <p className="note">Agotado</p> : conOpciones ? (
-                // Sabores: cada uno con su propia cantidad.
-                <div className="opciones" role="group" aria-label={`Sabor de ${p.nombre}`}>
-                  {p.opciones.map((o) => {
-                    const x = items.find((it) => mismo(it, p.id, o));
-                    return x ? (
-                      <div key={o} className="opc on">
-                        <span>{o}</span>
-                        <div className="qty">
-                          <button onClick={() => cambiar(p.id, -1, o)} aria-label={`Quitar un ${p.nombre} ${o}`}>−</button>
-                          <span>{x.cantidad}</span>
-                          <button onClick={() => cambiar(p.id, 1, o)} aria-label={`Agregar un ${p.nombre} ${o}`}>+</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button key={o} className="opc" onClick={() => cambiar(p.id, 1, o)}>+ {o}</button>
-                    );
-                  })}
-                </div>
-              ) : l ? (
+              {agotado ? <p className="note">Agotado</p> : (
                 <>
-                  {l.observacion && notaDe !== p.id && <p className="nv">{l.observacion}</p>}
-                  {notaDe === p.id && (
-                    <div className="ni">
-                      <input autoFocus value={nota} placeholder="Ej. sin crema, extra rábanos" aria-label={`Observación para ${p.nombre}`}
-                             onChange={(e) => setNota(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardarNota(p.id)} />
-                      <button className="add" onClick={() => guardarNota(p.id)}>Guardar</button>
+                  {mias.map((x, n) => (
+                    <div key={x.id} className="pieza">
+                      <div className="pieza-top">
+                        <span>
+                          {unaOpcion ? <><b>{n + 1}.</b> {x.opciones[0]}</>
+                            : varias ? <><b>{n + 1}.</b> {textoOpciones(x) || `Elige ${p.nombre_opcion}s`}</>
+                            : <b>Pieza {n + 1}</b>}
+                        </span>
+                        <button className="rm" onClick={() => quitarPieza(x.id)} aria-label={`Quitar ${p.nombre} ${n + 1}`}>Quitar</button>
+                      </div>
+                      {varias && (
+                        <div className="slots">
+                          {x.opciones.map((o, k) => (
+                            <select key={k} value={o} aria-label={`${p.nombre_opcion} ${k + 1} de ${p.nombre} ${n + 1}`}
+                                    className={o ? '' : 'vacio'}
+                                    onChange={(e) => cambiarPieza(x.id, { opciones: x.opciones.map((v, z) => (z === k ? e.target.value : v)) })}>
+                              <option value="">Elige {p.nombre_opcion} {k + 1}…</option>
+                              {p.opciones.map((op) => <option key={op} value={op}>{op}</option>)}
+                            </select>
+                          ))}
+                        </div>
+                      )}
+                      {x.observacion && notaDe !== x.id && <p className="nv">{x.observacion}</p>}
+                      {notaDe === x.id ? (
+                        <div className="ni">
+                          <input autoFocus value={nota} placeholder="Ej. sin crema, extra rábanos" aria-label={`Observación para ${p.nombre} ${n + 1}`}
+                                 onChange={(e) => setNota(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardarNota(x.id)} />
+                          <button className="add" onClick={() => guardarNota(x.id)}>Guardar</button>
+                        </div>
+                      ) : (
+                        <button className="obs" onClick={() => { setNotaDe(x.id); setNota(x.observacion); }}
+                                aria-label={`${x.observacion ? 'Editar' : 'Agregar'} observación de ${p.nombre} ${n + 1}`}>
+                          {x.observacion ? 'Editar observación' : 'Agregar observación'}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {unaOpcion ? (
+                    <div className="opciones" role="group" aria-label={`${p.nombre_opcion} de ${p.nombre}`}>
+                      {p.opciones.map((o) => <button key={o} className="opc" onClick={() => agregar(p, o)}>+ {o}</button>)}
+                    </div>
+                  ) : (
+                    <div className="rc">
+                      <button className="add" onClick={() => agregar(p)} aria-label={`Agregar ${p.nombre}`}>{mias.length ? 'Agregar otro' : 'Agregar'}</button>
                     </div>
                   )}
-                  <div className="rc">
-                    <div className="qty">
-                      <button onClick={() => cambiar(p.id, -1)} aria-label={`Quitar un ${p.nombre}`}>−</button>
-                      <span>{l.cantidad}</span>
-                      <button onClick={() => cambiar(p.id, 1)} aria-label={`Agregar un ${p.nombre}`}>+</button>
-                    </div>
-                    <button className="obs" onClick={() => { setNotaDe(p.id); setNota(l.observacion); }}>
-                      {l.observacion ? 'Editar observación' : 'Agregar observación'}
-                    </button>
-                  </div>
                 </>
-              ) : (
-                <div className="rc"><button className="add" onClick={() => cambiar(p.id, 1)}>Agregar</button></div>
               )}
             </div>
           );
@@ -447,13 +480,14 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
 
             {items.length > 0 && <h3>{enviadas.length ? 'Nueva comanda' : 'Pedido nuevo'}</h3>}
             {items.map((x) => (
-              <div key={`${x.producto_id}|${x.opcion ?? ''}`} className="li">
+              <div key={x.id} className="li">
                 <span>
-                  {x.cantidad} × {nombreLinea(precio[x.producto_id]?.nombre ?? 'Producto', x.opcion)}
+                  1 × {nombreLinea(precio[x.producto_id]?.nombre ?? 'Producto', textoOpciones(x))}
                   {x.observacion && <small>{x.observacion}</small>}
-                  {' '}<button className="rm" onClick={() => cambiar(x.producto_id, -x.cantidad, x.opcion)}>Quitar</button>
+                  {!completa(x, precio[x.producto_id]) && <span className="falta"> Falta elegir {precio[x.producto_id]?.nombre_opcion}</span>}
+                  {' '}<button className="rm" onClick={() => quitarPieza(x.id)}>Quitar</button>
                 </span>
-                <span>{dinero((precio[x.producto_id]?.precio ?? 0) * x.cantidad)}</span>
+                <span>{dinero(precio[x.producto_id]?.precio ?? 0)}</span>
               </div>
             ))}
 
@@ -467,7 +501,14 @@ function Pedido({ grupo, categorias, productos, precio, borrador, guardarBorrado
             {borrador.solicitud && items.length > 0 && (
               <p className="lock er" style={{ marginTop: 12 }}>El envío anterior no se confirmó. Vuelve a enviar: no se duplicará.</p>
             )}
-            {items.length > 0 && <button className="cta" disabled={ocupado} onClick={enviar}>{ocupado ? 'Enviando…' : 'Enviar a cocina'}</button>}
+            {incompletas.length > 0 && (
+              <p className="lock er" style={{ marginTop: 12 }}>
+                Falta elegir {precio[incompletas[0].producto_id]?.nombre_opcion} en {precio[incompletas[0].producto_id]?.nombre}.
+              </p>
+            )}
+            {items.length > 0 && (
+              <button className="cta" disabled={ocupado || incompletas.length > 0} onClick={enviar}>{ocupado ? 'Enviando…' : 'Enviar a cocina'}</button>
+            )}
             {!items.length && enviadas.length > 0 && !bloqueada && (
               <button className="cta" disabled={ocupado} onClick={pedirCuenta}>Pedir la cuenta</button>
             )}

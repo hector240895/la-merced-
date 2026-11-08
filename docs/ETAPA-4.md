@@ -82,3 +82,22 @@ Las partes de "impresa", "error", "reintentar" y "reimprimir" necesitan el servi
   - Sin precios, garantizado por la base.
   - Impresa, error, reintentar y reimprimir, sin duplicados, con permisos y auditoría.
 - **Navegador:** 4 comprobaciones nuevas (23 en total). Una de ellas simula al servicio de impresión avisando "impresa" y "error", y verifica que el mesero lo ve en su celular al instante y puede reintentar.
+
+## Cambios al menú y al pedido (8 de noviembre de 2026)
+
+**Guisados para elegir con botón**, igual que los sabores, en `20261109000100_guisados.sql`. La lista es: Deshebrada, Papas con chorizo, Chicharrón prensado, Requesón con rajas, Champiñones y Pollo.
+
+| Platillo | Guisados que se eligen |
+| --- | --- |
+| Orden de sopes con guisado (3 pz) | 3, uno por sope |
+| Orden de quesadillitas (3 pz) | 3, uno por quesadillita |
+| Quesadilla (2 guisados) | 2 |
+| Sope con guisado (1 pz), Quesadilla (1 guisado), Quesadillita individual con guisado, Tostada con guisado, Guisado extra | 1 |
+
+- Los guisados se pueden repetir, por ejemplo "Deshebrada, Pollo, Pollo".
+- No se puede enviar el pedido hasta elegirlos todos: aparece "Falta elegir guisado".
+- Salen en la comanda de cocina junto al platillo.
+
+**Cada pieza por separado.** Cada vez que el mesero toca *Agregar*, la pieza se anota aparte, con **su propia observación** y sus propios guisados o sabor. Por ejemplo, 3 órdenes de enchiladas: una "Sin crema", otra "Sin cebolla" y otra sin cambios.
+
+Las piezas **idénticas** (mismo producto, mismos guisados o sabor y misma observación) se juntan al enviar en una sola línea, por ejemplo "2 × Agua de sabor (500 ml) · Jamaica". Así la comanda se lee más rápido y no se pierde ningún detalle. Desde "Revisar pedido" se puede quitar una de ellas.

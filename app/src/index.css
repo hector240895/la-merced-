@@ -164,3 +164,11 @@ main.ancho { padding: 20px 16px; max-width: 1000px; margin-inline: auto; }
 .cmd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .cmd .n { flex: 1; min-width: 140px; }
 .cmd small { display: block; color: var(--mute); }
+
+/* Piezas del pedido, cada una con sus guisados y su observación */
+.pieza { border-top: 1px dashed var(--line); padding: 8px 0 4px; margin-top: 8px; }
+.pieza-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 600; }
+.slots { display: grid; gap: 6px; margin-top: 6px; }
+.slots select { width: 100%; }
+.slots select.vacio { border-color: var(--gold); color: var(--yt); }
+.falta { color: var(--er); font-size: 13px; font-weight: 600; }

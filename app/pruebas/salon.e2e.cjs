@@ -96,24 +96,30 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
     await captura(carlos, '03-mesero-mesas');
   });
 
-  await comprobar('Carlos toma el pedido de la Mesa 1 con observación', async () => {
+  await comprobar('Carlos toma el pedido de la Mesa 1: cada pieza con su observación', async () => {
     await tarjeta(carlos, 'Mesa 1').locator('.tbl').click();
-    await producto(carlos, 'Pozole rojo chico').getByRole('button', { name: 'Agregar' }).click();
-    await carlos.getByRole('button', { name: 'Agregar un Pozole rojo chico' }).click();
-    await producto(carlos, 'Pozole rojo chico').getByRole('button', { name: 'Agregar observación' }).click();
-    await carlos.getByLabel('Observación para Pozole rojo chico').fill('Sin lechuga');
-    await carlos.getByRole('button', { name: 'Guardar' }).click();
+    const agregar = (nombre) => carlos.getByRole('button', { name: `Agregar ${nombre}`, exact: true }).click();
+    await agregar('Pozole rojo chico');
+    await agregar('Pozole rojo chico');
+    for (const [n, nota] of [[1, 'Sin lechuga'], [2, 'Sin cebolla']]) {
+      await carlos.getByRole('button', { name: `Agregar observación de Pozole rojo chico ${n}` }).click();
+      await carlos.getByLabel(`Observación para Pozole rojo chico ${n}`).fill(nota);
+      await carlos.getByRole('button', { name: 'Guardar' }).click();
+    }
     await carlos.getByRole('button', { name: 'Bebidas', exact: true }).click();
     await producto(carlos, 'Refresco de vidrio (355 ml)').getByRole('button', { name: '+ Jarrito tamarindo' }).click();
     await producto(carlos, 'Agua de sabor (500 ml)').getByRole('button', { name: '+ Jamaica' }).click();
-    await carlos.getByRole('button', { name: 'Agregar un Agua de sabor (500 ml) Jamaica' }).click();
+    await producto(carlos, 'Agua de sabor (500 ml)').getByRole('button', { name: '+ Jamaica' }).click();
     await captura(carlos, '04b-mesero-sabores');
     await carlos.getByRole('button', { name: 'Pozole', exact: true }).click();
     await captura(carlos, '04-mesero-pedido');
     await carlos.getByRole('button', { name: /Revisar pedido · 5 productos/ }).click();
     await carlos.locator('.pane').getByText('Sin lechuga').waitFor();
+    await carlos.locator('.pane').getByText('Sin cebolla').waitFor();
     await carlos.locator('.pane').getByText('1 × Refresco de vidrio (355 ml) · Jarrito tamarindo').waitFor();
-    await carlos.locator('.pane').getByText('2 × Agua de sabor (500 ml) · Jamaica').waitFor();
+    if ((await carlos.locator('.pane .li', { hasText: '1 × Agua de sabor (500 ml) · Jamaica' }).count()) !== 2) {
+      throw new Error('Cada agua debería aparecer por separado');
+    }
     await captura(carlos, '05-mesero-revisar');
     await carlos.getByRole('button', { name: 'Enviar a cocina' }).click();
     await carlos.getByText('Pedido enviado. La comanda va a la impresora de cocina.').waitFor();
@@ -149,16 +155,27 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
     await tarjeta(carlos, 'Mesa 1').getByText('✓ Comanda impresa').waitFor({ timeout: 8000 });
   });
 
-  await comprobar('Pedido adicional: solo lo nuevo se suma a la cuenta', async () => {
+  await comprobar('Pedido adicional con guisados elegidos: no se envía hasta elegirlos todos', async () => {
     await tarjeta(carlos, 'Mesa 1').locator('.tbl').click();
     await carlos.getByRole('button', { name: 'Postres', exact: true }).click();
-    await producto(carlos, 'Jericallas').getByRole('button', { name: 'Agregar' }).click();
-    await carlos.getByRole('button', { name: /Revisar pedido · 6 productos/ }).click();
+    await carlos.getByRole('button', { name: 'Agregar Jericallas', exact: true }).click();
+    await carlos.getByRole('button', { name: 'Sopes', exact: true }).click();
+    await carlos.getByRole('button', { name: 'Agregar Orden de sopes con guisado (3 pz)', exact: true }).click();
+    await carlos.getByRole('button', { name: /Revisar pedido · 7 productos/ }).click();
+    await carlos.locator('.pane').getByText('Falta elegir guisado en Orden de sopes con guisado (3 pz).').waitFor();
+    if (!(await carlos.getByRole('button', { name: 'Enviar a cocina' }).isDisabled())) throw new Error('Se puede enviar sin guisados');
+    await carlos.getByRole('button', { name: 'Seguir pidiendo' }).click();
+    for (const [k, g] of [[1, 'Deshebrada'], [2, 'Pollo'], [3, 'Pollo']]) {
+      await carlos.getByLabel(`guisado ${k} de Orden de sopes con guisado (3 pz) 1`).selectOption(g);
+    }
+    await captura(carlos, '04c-mesero-guisados');
+    await carlos.getByRole('button', { name: /Revisar pedido · 7 productos/ }).click();
+    await carlos.locator('.pane').getByText('1 × Orden de sopes con guisado (3 pz) · Deshebrada, Pollo, Pollo').waitFor();
     await carlos.getByText('Nueva comanda').waitFor();
     await carlos.getByText('Ya enviado a cocina').waitFor();
     await carlos.getByRole('button', { name: 'Enviar a cocina' }).click();
     await carlos.getByText('Pedido adicional enviado. La comanda va a la impresora de cocina.').waitFor();
-    await tarjeta(carlos, 'Mesa 1').getByText('6 productos · $270').waitFor();
+    await tarjeta(carlos, 'Mesa 1').getByText('7 productos · $355').waitFor();
   });
 
   await comprobar('Si la comanda falla, el mesero ve el error y la reintenta', async () => {
@@ -193,17 +210,17 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
     await captura(carlos, '07-mesero-unidas');
   });
 
-  await comprobar('Carlos quita un pozole con motivo; queda tachado y el total baja', async () => {
+  await comprobar('Carlos quita una de dos aguas iguales con motivo; queda tachada y el total baja', async () => {
     await carlos.locator('.tbl', { hasText: 'Mesa 1 + Mesa 2' }).click();
     await carlos.getByRole('button', { name: /Revisar pedido/ }).click();
-    await carlos.locator('.li', { hasText: '2 × Pozole rojo chico' }).getByRole('button', { name: 'Quitar' }).click();
-    await carlos.getByLabel('Motivo').fill('Uno no se llevó al cliente');
+    await carlos.locator('.li', { hasText: '2 × Agua de sabor (500 ml) · Jamaica' }).getByRole('button', { name: 'Quitar' }).click();
+    await carlos.getByLabel('Motivo').fill('Una no se llevó al cliente');
     await carlos.getByLabel('Cantidad a quitar').selectOption('1');
     await carlos.getByRole('button', { name: 'Confirmar' }).click();
     await carlos.getByText('Quitados').waitFor();
-    await carlos.locator('.li.tachado', { hasText: '1 × Pozole rojo chico' }).waitFor();
-    await carlos.locator('.li', { hasText: '1 × Pozole rojo chico' }).first().waitFor();
-    await carlos.locator('.tot', { hasText: '$195' }).waitFor();
+    await carlos.locator('.li.tachado', { hasText: '1 × Agua de sabor (500 ml) · Jamaica' }).waitFor();
+    await carlos.locator('.li.old', { hasText: '1 × Agua de sabor (500 ml) · Jamaica' }).waitFor();
+    await carlos.locator('.tot', { hasText: '$330' }).waitFor();
     await captura(carlos, '08-mesero-quitar');
   });
 

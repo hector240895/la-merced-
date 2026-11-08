@@ -11,6 +11,7 @@ export interface Categoria { id: string; nombre: string; orden: number }
 export interface Producto {
   id: string; categoria_id: string; nombre: string; descripcion: string | null;
   precio: number; estado: 'activo' | 'agotado' | 'inactivo'; orden: number; opciones: string[];
+  cuantas_opciones: number; nombre_opcion: string;
 }
 export interface Cuenta {
   id: string; folio: number; tipo: 'mesa' | 'llevar'; mesa_id: string | null;
