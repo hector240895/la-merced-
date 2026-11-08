@@ -70,3 +70,29 @@ export function estadoDeComandas(trabajos: Trabajo[]): EstadoImpresion | null {
   if (trabajos.some((t) => t.estado === 'pendiente' || t.estado === 'enviado')) return 'pendiente';
   return 'impreso';
 }
+
+// Caja (Etapa 5)
+export type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia';
+export const METODO: Record<MetodoPago, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia' };
+export interface CobroExtra { id: string; cuenta_id: string; concepto: string; importe: number; estado: 'activa' | 'cancelada'; cancelacion_motivo: string | null }
+export interface ContenidoTicket {
+  documento: 'ticket'; negocio: string; direccion: string | null; telefonos: string | null; leyenda: string | null;
+  folio: number; destino: string; para_llevar: boolean; mesero: string | null; cajero: string | null; fecha: string; hora: string;
+  lineas: { cantidad: number; producto: string; opcion: string | null; precio_unitario: number; importe: number }[];
+  extras: { concepto: string; importe: number }[];
+  subtotal: number; impuestos: number; total: number;
+  pagos: { metodo: MetodoPago; importe: number; recibido: number | null; cambio: number | null }[];
+  propina: { metodo: MetodoPago; importe: number } | null;
+  reimpresion?: boolean; reimprimio?: string;
+}
+export interface Resumen {
+  fondo_inicial: number; ventas_efectivo: number; ventas_tarjeta: number; ventas_transferencia: number; ventas_total: number;
+  propinas_efectivo: number; propinas_tarjeta: number; devoluciones_efectivo: number; devoluciones_tarjeta: number;
+  devoluciones_transferencia: number; entradas: number; retiros: number; efectivo_esperado: number; terminal_esperada: number;
+  cuentas_cobradas: number; cobros_extra: number; cuentas_abiertas: number; turno_id?: string; abierto_en?: string;
+}
+export interface Turno {
+  id: string; cajero_id: string; estado: 'abierto' | 'cerrado' | 'aprobado'; fondo_inicial: number; abierto_en: string;
+  cerrado_en: string | null; efectivo_esperado: number | null; efectivo_contado: number | null; diferencia: number | null;
+  resumen: Resumen | null; aprobado_en: string | null; aprobado_por: string | null;
+}

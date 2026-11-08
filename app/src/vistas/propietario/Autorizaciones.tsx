@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { llamar, mensajeDe, supabase } from '../../lib/supabase';
 import { useEnVivo } from '../../lib/vivo';
 import { useAviso } from '../../componentes/Aviso';
-import { fechaHora, type Yo } from '../../lib/tipos';
+import { METODO, fechaHora, type MetodoPago, type Yo } from '../../lib/tipos';
 
 interface Solicitud {
   id: string; tipo: 'cancelar_cuenta' | 'anular_cobro' | 'cancelar_linea_cobrada'; cuenta_id: string;
   linea_id: string | null; cobro_extra_id: string | null; motivo: string; estado: 'pendiente' | 'aprobada' | 'rechazada';
-  solicitada_por: string; solicitada_en: string; resuelta_por: string | null; resuelta_en: string | null; comentario: string | null;
+  solicitada_por: string; solicitada_en: string; metodo_devolucion: MetodoPago | null; resuelta_por: string | null; resuelta_en: string | null; comentario: string | null;
 }
 interface Registro { id: number; accion: string; motivo: string | null; usuario_id: string | null; creado_en: string }
 interface Aviso { id: number; leido_en: string | null; auditoria: Registro }
@@ -86,7 +86,8 @@ export default function Autorizaciones({ yo, alCambiar }: { yo: Yo; alCambiar: (
           <div key={s.id} className="row">
             <span className="n">
               <b>{TIPO[s.tipo]} · {cuentas[s.cuenta_id] ?? ''}</b>
-              <small>Solicitó {quien(s.solicitada_por)} el {fechaHora(s.solicitada_en)} · Motivo: {s.motivo}</small>
+              <small>Solicitó {quien(s.solicitada_por)} el {fechaHora(s.solicitada_en)} · Motivo: {s.motivo}
+                {s.metodo_devolucion ? ` · Devolución al cliente: ${METODO[s.metodo_devolucion]}` : ''}</small>
               {s.resuelta_por && <small>{s.estado === 'aprobada' ? 'Aprobó' : 'Rechazó'} {quien(s.resuelta_por)} el {fechaHora(s.resuelta_en!)}{s.comentario ? ` · ${s.comentario}` : ''}</small>}
             </span>
             <span className={`chip ${s.estado === 'aprobada' ? 'g' : s.estado === 'rechazada' ? 'r' : ''}`}>

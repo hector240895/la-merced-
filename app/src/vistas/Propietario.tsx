@@ -7,8 +7,10 @@ import MesasAdmin from './propietario/MesasAdmin';
 import Usuarios from './propietario/Usuarios';
 import Autorizaciones from './propietario/Autorizaciones';
 import Comandas from './Comandas';
+import Caja from './Caja';
+import CortesVentas from './propietario/CortesVentas';
 
-type Pestana = 'salon' | 'comandas' | 'mesas' | 'usuarios' | 'autorizaciones';
+type Pestana = 'salon' | 'caja' | 'cortes' | 'comandas' | 'mesas' | 'usuarios' | 'autorizaciones';
 const CLAVE_PESTANA = 'la-merced-pestana';
 
 export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }) {
@@ -40,7 +42,7 @@ export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }
   useEnVivo(['autorizaciones', 'avisos'], contar);
 
   const pestanas: [Pestana, string][] = [
-    ['salon', 'Salón'], ['comandas', 'Comandas'], ['mesas', 'Mesas'], ['usuarios', 'Usuarios'], ['autorizaciones', 'Autorizaciones y avisos'],
+    ['salon', 'Salón'], ['caja', 'Caja'], ['cortes', 'Cortes y ventas'], ['comandas', 'Comandas'], ['mesas', 'Mesas'], ['usuarios', 'Usuarios'], ['autorizaciones', 'Autorizaciones y avisos'],
   ];
 
   return (
@@ -58,6 +60,8 @@ export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }
         <span className="quien"><small>{yo.nombre} · Propietario</small><button className="salir" onClick={salir}>Salir</button></span>
       </header>
       {pestana === 'salon' && <Salon yo={yo} dentroDePanel />}
+      {pestana === 'caja' && <Caja yo={yo} />}
+      {pestana === 'cortes' && <main className="ancho"><CortesVentas /></main>}
       {pestana === 'comandas' && <main className="ancho"><Comandas /></main>}
       {pestana === 'mesas' && <main className="ancho"><MesasAdmin /></main>}
       {pestana === 'usuarios' && <main className="ancho"><Usuarios yo={yo} /></main>}

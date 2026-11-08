@@ -172,3 +172,31 @@ main.ancho { padding: 20px 16px; max-width: 1000px; margin-inline: auto; }
 .slots select { width: 100%; }
 .slots select.vacio { border-color: var(--gold); color: var(--yt); }
 .falta { color: var(--er); font-size: 13px; font-weight: 600; }
+
+/* Caja (Etapa 5) */
+.dos { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(300px, 1.6fr); gap: 20px; align-items: start; }
+@media (max-width: 760px) { .dos { grid-template-columns: 1fr; } }
+.acc { display: flex; justify-content: space-between; gap: 10px; align-items: center; width: 100%; text-align: left; border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 8px; background: var(--card); }
+.acc.on { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,58,.3); }
+.acc small { display: block; color: var(--mute); }
+.acc.tenue { opacity: .7; }
+.grande { display: flex; justify-content: space-between; font-family: Fraunces, Georgia, serif; font-size: 26px; margin: 12px 0; }
+.ms { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.m { padding: 10px 14px; border-radius: 10px; border: 1.5px solid var(--line); font-weight: 600; }
+.m.on { background: var(--g); color: #fff; border-color: var(--g); }
+.rem { font-weight: 600; margin: 8px 0; }
+.rem.ok { color: var(--gt); }
+.rem.no { color: var(--er); }
+.r { display: flex; justify-content: space-between; padding: 6px 0; }
+.r.s { border-top: 2px solid var(--gold); font-weight: 600; margin-top: 6px; padding-top: 10px; }
+.btn.big { width: 100%; padding: 15px; font-size: 18px; }
+.btn[disabled] { opacity: .45; }
+.papel.angosto { width: 230px; font-size: 13px; }
+.t-linea { display: flex; justify-content: space-between; gap: 8px; margin: 3px 0; text-align: left; }
+.t-linea small { display: block; padding-left: 10px; }
+.t-total { font-weight: 700; font-size: 15px; }
+.cambio-grande { background: var(--gold); color: #13211A; font: 700 26px Fraunces, Georgia, serif; text-align: center; padding: 10px; border-radius: 12px; margin: 0 0 10px; }
+.nav2 { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.nav2 button { padding: 8px 16px; border-radius: 99px; border: 1.5px solid var(--line); font-weight: 600; background: var(--card); }
+.nav2 .on { background: var(--g); color: #fff; border-color: var(--g); }
+h3.sub { font: 600 14px Figtree, sans-serif; color: var(--mute); margin: 14px 0 6px; }
