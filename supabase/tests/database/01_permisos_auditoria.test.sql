@@ -169,7 +169,7 @@ select throws_ok($$ update public.cuentas set estado = 'abierta', cancelada_en =
 -- Quitar un producto de la cuenta cobrada con autorización.
 select pg_temp.como('22222222-2222-2222-2222-222222222222');
 select public.solicitar_autorizacion('cancelar_linea_cobrada', 'a0000000-0000-0000-0000-000000000002',
-  'Se cobró un pozole que no se sirvió', 'b0000000-0000-0000-0000-000000000003');
+  'Se cobró un pozole que no se sirvió', 'b0000000-0000-0000-0000-000000000003', null, 'efectivo');
 reset role;
 select pg_temp.como('11111111-1111-1111-1111-111111111111');
 select ok((select count(*) from public.avisos) > 0, 'Hector recibe aviso de lo que hizo Wendy');
