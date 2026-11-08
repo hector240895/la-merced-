@@ -226,10 +226,12 @@ const producto = (page, nombre) => page.locator('.prod').filter({ has: page.loca
 
   await comprobar('Carlos pide la cuenta y la mesa queda por cobrar y bloqueada', async () => {
     await carlos.getByRole('button', { name: 'Pedir la cuenta' }).click();
-    await carlos.getByText('Cuenta solicitada. Avisa al cajero.').waitFor();
+    await carlos.getByText('Cuenta solicitada. La cuenta se imprime en caja.').waitFor();
     await carlos.locator('.tcard', { hasText: 'Mesa 1 + Mesa 2' }).getByText('Por cobrar').waitFor();
     await carlos.locator('.tbl', { hasText: 'Mesa 1 + Mesa 2' }).click();
     await carlos.getByText('El cajero registrará el cobro').waitFor();
+    await carlos.getByRole('button', { name: 'Volver a imprimir la cuenta' }).click();
+    await carlos.getByText('La cuenta se imprime otra vez en caja.').waitFor();
     await carlos.getByRole('button', { name: '‹ Mesas' }).click();
   });
 

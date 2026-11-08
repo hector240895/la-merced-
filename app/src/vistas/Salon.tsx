@@ -166,6 +166,7 @@ export default function Salon({ yo, salir, dentroDePanel = false }: { yo: Yo; sa
           lineas: grupo.lineas, trabajos: grupo.trabajos, bloqueada: grupo.principal.estado === 'por_cobrar',
           enviar: (productos, solicitud) => llamar('enviar_pedido', { p_mesa_id: id, p_productos: productos, p_solicitud_id: solicitud }),
           pedirCuenta: () => llamar('pedir_cuenta', { p_mesa_id: id }),
+          imprimirCuenta: grupo.cuenta ? () => llamar('imprimir_precuenta', { p_cuenta_id: grupo.cuenta!.id }) : undefined,
         }}
         categorias={categorias} productos={productos} precio={precio}
         borrador={borradores[id] ?? { items: [] }} guardarBorrador={guardarEn(id)}

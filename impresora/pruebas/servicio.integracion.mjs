@@ -103,9 +103,11 @@ await comprobar('El ticket sale en la impresora de caja', async () => {
   const r = await laura.rpc('cobrar_cuenta', { p_cuenta_id: pedido1.cuenta_id, p_solicitud_id: crypto.randomUUID(),
     p_pagos: [{ metodo: 'efectivo', importe: 75, recibido: 100 }] });
   if (r.error) throw new Error(r.error.message);
-  await esperar(async () => archivos('caja').length === 1);
-  const t = leerArchivo('caja', archivos('caja')[0]);
+  // En caja salen la precuenta (al pedir la cuenta) y el ticket (al cobrar).
+  const f = await esperar(async () => archivos('caja').find((x) => leerArchivo('caja', x).includes('Cambio')));
+  const t = leerArchivo('caja', f);
   if (!/TOTAL\s+\$75/.test(t) || !/Cambio\s+\$25/.test(t)) throw new Error(t);
+  if (!archivos('caja').some((x) => leerArchivo('caja', x).includes('CUENTA NO PAGADA'))) throw new Error('No salió la precuenta');
   if (archivos('cocina').length !== 1) throw new Error('El ticket salió en cocina');
 });
 
@@ -157,6 +159,17 @@ await comprobar('La reimpresión manual sale marcada como REIMPRESIÓN', async (
   const x = await carlos.rpc('reimprimir_comanda', { p_comanda_id: p.comanda_id });
   if (x.error) throw new Error(x.error.message);
   await esperar(async () => leerArchivo('cocina', archivos('cocina').slice(-1)[0]).includes('REIMPRESI'));
+});
+
+await comprobar('Al pedir la cuenta, la precuenta sale en la impresora de caja con la mesa', async () => {
+  const p = await pedir('Mesa 6', 'Café de olla', '');
+  await esperar(async () => (await trabajoDe(p.comanda_id))?.estado === 'impreso');
+  const antes = archivos('caja').length;
+  const r = await carlos.rpc('pedir_cuenta', { p_mesa_id: await mesa('Mesa 6') });
+  if (r.error) throw new Error(r.error.message);
+  await esperar(async () => archivos('caja').length === antes + 1);
+  const t = leerArchivo('caja', archivos('caja').slice(-1)[0]);
+  if (!t.includes('CUENTA INFORMATIVA') || !t.includes('Mesa 6') || !t.includes('CUENTA NO PAGADA') || !/TOTAL\s+\$30/.test(t)) throw new Error(t);
 });
 
 await comprobar('El corte de caja sale en la impresora de caja', async () => {

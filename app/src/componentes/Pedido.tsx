@@ -65,6 +65,7 @@ export interface Destino {
   bloqueada: boolean;                 // la cuenta ya se pidió: no se agregan productos
   enviar: (productos: ReturnType<typeof agrupar>, solicitud: string) => Promise<unknown>;
   pedirCuenta?: () => Promise<unknown>;
+  imprimirCuenta?: () => Promise<unknown>;   // precuenta en la impresora de caja
 }
 
 interface PropsPedido {
@@ -132,7 +133,7 @@ export default function Pedido({ destino, categorias, productos, precio, borrado
 
   async function pedirCuenta() {
     if (!destino.pedirCuenta) return;
-    const ok = await accion(destino.pedirCuenta, 'Cuenta solicitada. Avisa al cajero.');
+    const ok = await accion(destino.pedirCuenta, 'Cuenta solicitada. La cuenta se imprime en caja.');
     if (ok) { setHoja(false); volver(); }
   }
 
@@ -169,6 +170,12 @@ export default function Pedido({ destino, categorias, productos, precio, borrado
           </>
         )}
         {bloqueada && <p className="lock">Cuenta solicitada. El cajero registrará el cobro y liberará la mesa.</p>}
+        {bloqueada && destino.imprimirCuenta && (
+          <button className="sec" disabled={ocupado}
+                  onClick={() => accion(destino.imprimirCuenta!, 'La cuenta se imprime otra vez en caja.')}>
+            Volver a imprimir la cuenta
+          </button>
+        )}
         {!bloqueada && productos.filter((p) => p.categoria_id === cat).map((p) => {
           const mias = items.filter((x) => x.producto_id === p.id);
           const agotado = p.estado === 'agotado';

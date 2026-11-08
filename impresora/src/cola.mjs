@@ -11,7 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import { formatear } from './formatos.mjs';
 import { guardarImpresos, leerImpresos } from './config.mjs';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0';
 
 export async function iniciarServicio({ config, contrasena, controlador, registrar = console.log, intervalo = 10_000, intervaloLatido = 15_000 }) {
   const supabase = createClient(config.supabaseUrl, config.llavePublica, {
@@ -126,5 +126,6 @@ function describir(t) {
   const c = t.contenido ?? {};
   if (t.documento === 'comanda') return `${c.destino ?? ''} #${c.numero ?? ''}`;
   if (t.documento === 'ticket') return `folio ${c.folio ?? ''}`;
+  if (t.documento === 'precuenta') return `${c.destino ?? ''} folio ${c.folio ?? ''}`;
   return '';
 }

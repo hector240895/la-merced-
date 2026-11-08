@@ -18,6 +18,26 @@ Un programa para la **computadora de caja (Windows 11)**, en la carpeta `impreso
 
 La contraseña de la cuenta del programa queda **cifrada con la protección de Windows**: solo ese usuario de Windows, en esa computadora, puede leerla.
 
+## Precuenta (cuenta informativa antes de cobrar)
+
+Agregada el 8 de noviembre de 2026 (`20261113000100_precuenta_tipo.sql`, `20261113000200_precuenta.sql`; programa de impresión versión 1.1.0).
+
+- **Cuándo se imprime:** sola, cuando el mesero toca **Pedir la cuenta**, en la impresora de **caja** (NE-510X).
+- **Volver a imprimirla:** desde el celular del mesero (**Volver a imprimir la cuenta**) o desde caja (**Imprimir cuenta**). También la pueden imprimir los propietarios.
+- **Qué lleva:** Cenaduría La Merced, "CUENTA INFORMATIVA", la **mesa** (o "Para llevar #folio") en letra grande, folio, fecha y hora, los productos con su importe, los cobros extra, el **TOTAL** y "**CUENTA NO PAGADA**".
+- **Qué no hace:** no cambia la mesa, no registra pagos y no entra al corte. Sí queda registrado quién la imprimió.
+- La impresora de **cocina** no cambia.
+
+### Cómo actualizar (en este orden)
+
+1. **Primero la computadora de caja:**
+   - Descarga otra vez el ZIP de GitHub y reemplaza la carpeta `C:\LaMerced\la-merced--main`.
+   - En la carpeta `impresora`, haz doble clic en `reiniciar.bat`. No necesitas volver a configurar.
+   - En la app, en **Comandas**, la computadora debe aparecer conectada.
+2. **Después la base de datos**, en tu computadora: `git pull` y `npx supabase db push`.
+
+Hazlo en ese orden: el programa anterior no conoce la precuenta y la marcaría "Error de impresión".
+
 ## Instalación (la haces tú, una sola vez)
 
 ### A. En tu computadora, con el repositorio
@@ -74,6 +94,8 @@ Haz cada una y anota si salió bien:
 | 8 | Apagar la computadora de caja, enviar un pedido y volver a prenderla | Al entrar a Windows sale la comanda pendiente |
 | 9 | Reimprimir una comanda desde Comandas | Sale marcada "REIMPRESIÓN" |
 | 10 | Hacer el corte de caja | Sale el corte en la impresora de caja |
+| 12 | El mesero toca **Pedir la cuenta** | Sale en **caja** la cuenta con la mesa en grande, los productos, el TOTAL y "CUENTA NO PAGADA"; la mesa sigue "Por cobrar" y el corte no cambia |
+| 13 | **Volver a imprimir la cuenta** (celular) e **Imprimir cuenta** (caja) | Sale otra vez la cuenta |
 | 11 | Acentos y ñ | "Requesón", "Champiñones", "Jarrito piña" se ven bien |
 
 Si algo no sale bien, mándame el número de la prueba y lo que viste, y la parte final del **registro**:
@@ -93,16 +115,19 @@ Si algo no sale bien, mándame el número de la prueba y lo que viste, y la part
 
 Las hice sin Windows ni impresoras reales: Windows y las impresoras físicas se prueban con la lista de arriba.
 
-- **`impresora/pruebas/formatos.test.mjs` (6 pruebas):**
+- **`impresora/pruebas/formatos.test.mjs` (7 pruebas):**
   - Acentos y ñ en las dos tablas.
   - Renglones que caben en 80 mm y 58 mm.
   - Comanda sin precios y con corte de papel.
   - Ticket solo con total, recibido y cambio.
   - Corte con faltante o sobrante.
-- **`impresora/pruebas/servicio.integracion.mjs` (9 comprobaciones):** el servicio real contra la base local, con impresoras simuladas.
+  - Precuenta con la mesa y CUENTA NO PAGADA.
+- **`impresora/pruebas/servicio.integracion.mjs` (10 comprobaciones):** el servicio real contra la base local, con impresoras simuladas.
   - Comanda en cocina y ticket en caja.
   - Error y reintento.
   - Pendientes al reconectar, en orden.
   - Sin duplicados.
-  - Reimpresión y corte.
+  - Reimpresión, precuenta y corte.
   - Estado de las impresoras.
+
+- **Base de datos:** `supabase/tests/database/08_precuenta.test.sql` (14 pruebas): la precuenta sale al pedir la cuenta, en caja, con la mesa, sin registrar pagos ni cambiar la cuenta.

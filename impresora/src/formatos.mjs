@@ -50,6 +50,25 @@ export function ticket(t, opciones) {
   return d.terminar();
 }
 
+// Precuenta: la cuenta antes de cobrar, para llevarla a la mesa.
+export function precuenta(t, opciones) {
+  const d = new Documento({ cortar: false, ...opciones });
+  d.alinear('centro').negrita(true).parrafo(t.negocio).negrita(false);
+  d.linea('CUENTA INFORMATIVA');
+  d.tamano(2).negrita(true).parrafo(t.destino, Math.floor(d.ancho / 2)).negrita(false).tamano(1);
+  d.linea(`Folio ${t.folio}  ${t.fecha} ${t.hora}`);
+  d.separador().alinear('izquierda');
+  for (const l of t.lineas ?? []) {
+    d.dosColumnas(`${l.cantidad} ${l.producto}`, dinero(l.importe));
+    if (l.opcion) d.parrafo(l.opcion, d.ancho, '  ');
+  }
+  for (const x of t.extras ?? []) d.dosColumnas(`Extra: ${x.concepto}`, dinero(x.importe));
+  d.separador();
+  d.negrita(true).tamano('alto').dosColumnas('TOTAL', dinero(t.total)).tamano(1).negrita(false);
+  d.linea().alinear('centro').negrita(true).linea(t.leyenda ?? 'CUENTA NO PAGADA').negrita(false);
+  return d.terminar();
+}
+
 export function corte(r, opciones) {
   const d = new Documento({ cortar: false, ...opciones });
   const fila = (txt, v, signo = '') => d.dosColumnas(txt, signo + dinero(v));
@@ -96,5 +115,6 @@ export function formatear(trabajo, config) {
   if (trabajo.documento === 'comanda') return comanda(c, opciones);
   if (trabajo.documento === 'ticket') return ticket(c, opciones);
   if (trabajo.documento === 'corte') return corte(c, opciones);
+  if (trabajo.documento === 'precuenta') return precuenta(c, opciones);
   throw new Error(`Documento desconocido: ${trabajo.documento}`);
 }

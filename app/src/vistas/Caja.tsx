@@ -349,6 +349,13 @@ function Detalle({ c, lineasC, extrasC, ticketC, total, abierta, nombre, ocupado
 
       <div className="grande"><span>Total</span><span>{dinero(cobrada ? Number(c.total) : total)}</span></div>
 
+      {editable && total > 0 && (
+        <button className="btn s" disabled={ocupado} style={{ marginBottom: 8 }}
+                onClick={() => accion(() => llamar('imprimir_precuenta', { p_cuenta_id: c.id }), 'La cuenta se imprime en caja (no es cobro).')}>
+          Imprimir cuenta
+        </button>
+      )}
+
       {cobrada && (
         <>
           <p className="rem ok">Cuenta cobrada.</p>
