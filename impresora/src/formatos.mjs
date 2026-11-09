@@ -51,10 +51,10 @@ export function ticket(t, opciones) {
 }
 
 // Precuenta: la cuenta antes de cobrar, para llevarla a la mesa.
+// (Sin leyendas "cuenta informativa" ni "no pagada", a petición del propietario.)
 export function precuenta(t, opciones) {
   const d = new Documento({ cortar: false, ...opciones });
   d.alinear('centro').negrita(true).parrafo(t.negocio).negrita(false);
-  d.linea('CUENTA INFORMATIVA');
   d.tamano(2).negrita(true).parrafo(t.destino, Math.floor(d.ancho / 2)).negrita(false).tamano(1);
   d.linea(`Folio ${t.folio}  ${t.fecha} ${t.hora}`);
   d.separador().alinear('izquierda');
@@ -65,7 +65,6 @@ export function precuenta(t, opciones) {
   for (const x of t.extras ?? []) d.dosColumnas(`Extra: ${x.concepto}`, dinero(x.importe));
   d.separador();
   d.negrita(true).tamano('alto').dosColumnas('TOTAL', dinero(t.total)).tamano(1).negrita(false);
-  d.linea().alinear('centro').negrita(true).linea(t.leyenda ?? 'CUENTA NO PAGADA').negrita(false);
   return d.terminar();
 }
 

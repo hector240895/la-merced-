@@ -87,19 +87,18 @@ test('corte de caja: esperado, contado y diferencia', () => {
   assert.match(t, /Faltante\s+\$5/);
 });
 
-test('precuenta: mesa, productos, total y CUENTA NO PAGADA, en 58 mm', () => {
+test('precuenta: mesa, productos y total, sin leyendas, en 58 mm', () => {
   const t = leer(precuenta({
     documento: 'precuenta', negocio: 'Cenaduría La Merced', destino: 'Mesa 1', folio: 25, fecha: '08/11/2026', hora: '22:40',
     lineas: [{ cantidad: 2, producto: 'Pozole rojo grande', opcion: null, precio_unitario: 85, importe: 170 },
              { cantidad: 1, producto: 'Refresco de vidrio (355 ml)', opcion: 'Pepsi', precio_unitario: 25, importe: 25 }],
     extras: [], total: 195, leyenda: 'CUENTA NO PAGADA',
   }, { ancho: 32 }));
-  assert.match(t, /CUENTA INFORMATIVA/);
   assert.match(t, /Mesa 1/);
   assert.match(t, /Folio 25/);
   assert.match(t, /2 Pozole rojo grande\s+\$170/);
   assert.match(t, /Pepsi/);
   assert.match(t, /TOTAL\s+\$195/);
-  assert.match(t, /CUENTA NO PAGADA/);
+  assert.doesNotMatch(t, /CUENTA INFORMATIVA|NO PAGADA/);
   for (const r of t.split('\n')) assert.ok(r.length <= 32, `renglón demasiado largo: "${r}"`);
 });

@@ -24,7 +24,7 @@ Agregada el 8 de noviembre de 2026 (`20261113000100_precuenta_tipo.sql`, `202611
 
 - **Cuándo se imprime:** sola, cuando el mesero toca **Pedir la cuenta**, en la impresora de **caja** (NE-510X).
 - **Volver a imprimirla:** desde el celular del mesero (**Volver a imprimir la cuenta**) o desde caja (**Imprimir cuenta**). También la pueden imprimir los propietarios.
-- **Qué lleva:** Cenaduría La Merced, "CUENTA INFORMATIVA", la **mesa** (o "Para llevar #folio") en letra grande, folio, fecha y hora, los productos con su importe, los cobros extra, el **TOTAL** y "**CUENTA NO PAGADA**".
+- **Qué lleva:** Cenaduría La Merced, la **mesa** (o "Para llevar #folio") en letra grande, folio, fecha y hora, los productos con su importe, los cobros extra y el **TOTAL**. Sin las leyendas "cuenta informativa" ni "cuenta no pagada" (programa de impresión 1.1.1).
 - **Qué no hace:** no cambia la mesa, no registra pagos y no entra al corte. Sí queda registrado quién la imprimió.
 - La impresora de **cocina** no cambia.
 
@@ -94,7 +94,7 @@ Haz cada una y anota si salió bien:
 | 8 | Apagar la computadora de caja, enviar un pedido y volver a prenderla | Al entrar a Windows sale la comanda pendiente |
 | 9 | Reimprimir una comanda desde Comandas | Sale marcada "REIMPRESIÓN" |
 | 10 | Hacer el corte de caja | Sale el corte en la impresora de caja |
-| 12 | El mesero toca **Pedir la cuenta** | Sale en **caja** la cuenta con la mesa en grande, los productos, el TOTAL y "CUENTA NO PAGADA"; la mesa sigue "Por cobrar" y el corte no cambia |
+| 12 | El mesero toca **Pedir la cuenta** | Sale en **caja** la cuenta con la mesa en grande, los productos y el TOTAL; la mesa sigue "Por cobrar" y el corte no cambia |
 | 13 | **Volver a imprimir la cuenta** (celular) e **Imprimir cuenta** (caja) | Sale otra vez la cuenta |
 | 11 | Acentos y ñ | "Requesón", "Champiñones", "Jarrito piña" se ven bien |
 
@@ -121,7 +121,7 @@ Las hice sin Windows ni impresoras reales: Windows y las impresoras físicas se 
   - Comanda sin precios y con corte de papel.
   - Ticket solo con total, recibido y cambio.
   - Corte con faltante o sobrante.
-  - Precuenta con la mesa y CUENTA NO PAGADA.
+  - Precuenta con la mesa y el total, sin leyendas.
 - **`impresora/pruebas/servicio.integracion.mjs` (10 comprobaciones):** el servicio real contra la base local, con impresoras simuladas.
   - Comanda en cocina y ticket en caja.
   - Error y reintento.
