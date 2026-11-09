@@ -28,6 +28,8 @@ Agregada el 8 de noviembre de 2026 (`20261113000100_precuenta_tipo.sql`, `202611
 - **Qué no hace:** no cambia la mesa, no registra pagos y no entra al corte. Sí queda registrado quién la imprimió.
 - La impresora de **cocina** no cambia.
 
+- **Sin guisados:** la precuenta y el ticket pagado no muestran los guisados ni otras opciones del platillo; sí muestran el sabor de las bebidas. La comanda de cocina sigue mostrando todo (`20261115000100_tickets_sin_guisados.sql`).
+
 ### Cómo actualizar (en este orden)
 
 1. **Primero la computadora de caja:**

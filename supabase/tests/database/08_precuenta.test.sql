@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(14);
+select plan(18);
 
 create function pg_temp.como(p_id uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true),
@@ -64,6 +64,29 @@ select is((select count(*)::int from pagos), 0, 'No se registra ningún pago');
 select ok((select count(*) >= 2 from auditoria where accion like 'Imprimió la cuenta de Mesa 1 + Mesa 2%'),
   'Queda registrado quién imprimió la cuenta');
 
+-- Guisados: no aparecen en la precuenta ni en el ticket, sí en la comanda de cocina.
+create temp table g as select (select id from mesas where nombre = 'Mesa 3') m3,
+  (select id from productos where nombre = 'Tostada con guisado') tostada,
+  (select id from productos where nombre = 'Agua de sabor (500 ml)') agua;
+grant select on g to authenticated;
+select pg_temp.como('33333333-3333-3333-3333-333333333333');
+select public.enviar_pedido((select m3 from g), jsonb_build_array(
+  jsonb_build_object('producto_id', (select tostada from g), 'cantidad', 1, 'opcion', 'Champiñones'),
+  jsonb_build_object('producto_id', (select agua from g), 'cantidad', 1, 'opcion', 'Jamaica')), gen_random_uuid());
+select public.pedir_cuenta((select m3 from g));
+reset role;
+set constraints comandas_imprimir immediate;
+set constraints comandas_imprimir deferred;
+select ok((select contenido -> 'lineas' @> '[{"producto": "Tostada con guisado", "opcion": "Champiñones"}]'
+           from trabajos_impresion where documento = 'comanda' and contenido ->> 'destino' = 'Mesa 3'),
+  'La comanda de cocina sí lleva el guisado');
+select ok((select contenido -> 'lineas' @> '[{"producto": "Tostada con guisado", "opcion": null}]'
+           from trabajos_impresion where documento = 'precuenta' and contenido ->> 'destino' = 'Mesa 3'),
+  'La precuenta no lleva el guisado');
+select ok((select contenido -> 'lineas' @> '[{"producto": "Agua de sabor (500 ml)", "opcion": "Jamaica"}]'
+           from trabajos_impresion where documento = 'precuenta' and contenido ->> 'destino' = 'Mesa 3'),
+  'La precuenta sí lleva el sabor de la bebida');
+
 -- Una cuenta cobrada ya no imprime precuenta.
 select pg_temp.como('44444444-4444-4444-4444-444444444444');
 select public.abrir_caja(0);
@@ -71,7 +94,12 @@ select public.cobrar_cuenta((select id from cuentas where mesa_id = (select m1 f
   '[{"metodo": "tarjeta", "importe": 175}]', gen_random_uuid());
 select throws_ok($$ select public.imprimir_precuenta((select id from cuentas where mesa_id = (select m1 from t))) $$,
   'La cuenta no está abierta', 'Una cuenta cobrada no imprime precuenta (para eso está el ticket)');
+select public.cobrar_cuenta((select id from cuentas where mesa_id = (select m3 from g)),
+  '[{"metodo": "tarjeta", "importe": 70}]', gen_random_uuid());
 reset role;
+select ok((select contenido -> 'lineas' @> '[{"producto": "Tostada con guisado", "opcion": null}, {"producto": "Agua de sabor (500 ml)", "opcion": "Jamaica"}]'
+           from trabajos_impresion where documento = 'ticket' and cuenta_id = (select id from cuentas where mesa_id = (select m3 from g))),
+  'El ticket pagado tampoco lleva el guisado, pero sí el sabor');
 
 select * from finish();
 rollback;
