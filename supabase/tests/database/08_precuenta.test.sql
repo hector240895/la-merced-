@@ -45,8 +45,8 @@ select is((select (contenido ->> 'total')::numeric from trabajos_impresion where
 select is((select contenido ->> 'leyenda' from trabajos_impresion where documento = 'precuenta'), '¡Gracias por su visita!',
   'Termina con la leyenda de agradecimiento');
 select ok((select contenido -> 'lineas' @> '[{"cantidad": 2, "producto": "Pozole rojo chico", "importe": 150.00},
-                                            {"producto": "Refresco de vidrio (355 ml)", "opcion": "Pepsi"}]'
-           from trabajos_impresion where documento = 'precuenta'), 'Lleva los productos con su sabor e importe');
+                                            {"producto": "Refresco de vidrio (355 ml)", "opcion": null}]'
+           from trabajos_impresion where documento = 'precuenta'), 'Lleva los productos con su importe, sin sabores');
 select is((select count(*)::int from trabajos_impresion where documento = 'precuenta'), 1,
   'El mesero ve el estado de impresión de la precuenta');
 
@@ -64,7 +64,7 @@ select is((select count(*)::int from pagos), 0, 'No se registra ningún pago');
 select ok((select count(*) >= 2 from auditoria where accion like 'Imprimió la cuenta de Mesa 1 + Mesa 2%'),
   'Queda registrado quién imprimió la cuenta');
 
--- Guisados: no aparecen en la precuenta ni en el ticket, sí en la comanda de cocina.
+-- Guisados y sabores: no aparecen en la precuenta ni en el ticket, sí en la comanda de cocina.
 create temp table g as select (select id from mesas where nombre = 'Mesa 3') m3,
   (select id from productos where nombre = 'Tostada con guisado') tostada,
   (select id from productos where nombre = 'Agua de sabor (500 ml)') agua;
@@ -83,9 +83,9 @@ select ok((select contenido -> 'lineas' @> '[{"producto": "Tostada con guisado",
 select ok((select contenido -> 'lineas' @> '[{"producto": "Tostada con guisado", "opcion": null}]'
            from trabajos_impresion where documento = 'precuenta' and contenido ->> 'destino' = 'Mesa 3'),
   'La precuenta no lleva el guisado');
-select ok((select contenido -> 'lineas' @> '[{"producto": "Agua de sabor (500 ml)", "opcion": "Jamaica"}]'
+select ok((select contenido -> 'lineas' @> '[{"producto": "Agua de sabor (500 ml)", "opcion": null}]'
            from trabajos_impresion where documento = 'precuenta' and contenido ->> 'destino' = 'Mesa 3'),
-  'La precuenta sí lleva el sabor de la bebida');
+  'La precuenta tampoco lleva el sabor de la bebida');
 
 -- Una cuenta cobrada ya no imprime precuenta.
 select pg_temp.como('44444444-4444-4444-4444-444444444444');
@@ -97,9 +97,9 @@ select throws_ok($$ select public.imprimir_precuenta((select id from cuentas whe
 select public.cobrar_cuenta((select id from cuentas where mesa_id = (select m3 from g)),
   '[{"metodo": "tarjeta", "importe": 70}]', gen_random_uuid());
 reset role;
-select ok((select contenido -> 'lineas' @> '[{"producto": "Tostada con guisado", "opcion": null}, {"producto": "Agua de sabor (500 ml)", "opcion": "Jamaica"}]'
+select ok((select contenido -> 'lineas' @> '[{"producto": "Tostada con guisado", "opcion": null}, {"producto": "Agua de sabor (500 ml)", "opcion": null}]'
            from trabajos_impresion where documento = 'ticket' and cuenta_id = (select id from cuentas where mesa_id = (select m3 from g))),
-  'El ticket pagado tampoco lleva el guisado, pero sí el sabor');
+  'El ticket pagado no lleva guisados ni sabores');
 
 select * from finish();
 rollback;
