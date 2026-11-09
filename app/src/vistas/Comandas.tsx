@@ -3,8 +3,14 @@ import { mensajeDe, supabase } from '../lib/supabase';
 import { useEnVivo } from '../lib/vivo';
 import { useAviso } from '../componentes/Aviso';
 import ListaComandas from '../componentes/ListaComandas';
-import { CAMPOS_TRABAJO, fechaHora, type Trabajo } from '../lib/tipos';
+import { CAMPOS_TRABAJO, fechaHora, type EstadoImpresion, type Trabajo } from '../lib/tipos';
+import { EstadoImp } from '../componentes/Comanda';
+import { llamar } from '../lib/supabase';
 
+interface TrabajoCaja {
+  id: string; documento: 'ticket' | 'precuenta' | 'corte'; estado: EstadoImpresion; ultimo_error: string | null; creado_en: string;
+  contenido: { destino?: string; folio?: number } | null;
+}
 interface Servicio {
   ultimo_latido: string; equipo: string | null; pendientes: number;
   impresoras: Record<string, { nombre: string; estado: string }>;
@@ -17,6 +23,7 @@ export default function Comandas() {
   const [trabajos, setTrabajos] = useState<Trabajo[]>([]);
   const [ocupado, setOcupado] = useState(false);
   const [servicio, setServicio] = useState<Servicio | null | undefined>(undefined);
+  const [caja, setCaja] = useState<TrabajoCaja[]>([]);
   const [ahora, setAhora] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setAhora(Date.now()), 10_000); return () => clearInterval(t); }, []);
 
@@ -25,6 +32,10 @@ export default function Comandas() {
       .eq('documento', 'comanda').order('creado_en', { ascending: false }).limit(60);
     if (error) aviso(mensajeDe(error));
     else setTrabajos(data as unknown as Trabajo[]);
+    // Impresiones de caja (cuentas, tickets, cortes) que fallaron o siguen esperando.
+    const c = await supabase.from('trabajos_impresion').select('id, documento, estado, ultimo_error, creado_en, contenido')
+      .eq('impresora', 'caja').in('estado', ['pendiente', 'error']).order('creado_en', { ascending: false }).limit(20);
+    setCaja((c.data ?? []) as TrabajoCaja[]);
     const s = await supabase.from('servicio_impresion').select('ultimo_latido, equipo, impresoras, pendientes').maybeSingle();
     setServicio((s.data as Servicio | null) ?? null);
   }, [aviso]);
@@ -69,6 +80,26 @@ export default function Comandas() {
             </>
           )}
       </div>
+      {caja.length > 0 && (
+        <div className="box" style={{ borderColor: caja.some((t) => t.estado === 'error') ? 'var(--er)' : undefined }}>
+          <h2>Impresora de caja · sin imprimir</h2>
+          {caja.map((t) => (
+            <div key={t.id} className="cmd">
+              <span className="n">
+                <b>{t.documento === 'precuenta' ? `Cuenta de ${t.contenido?.destino ?? ''}` : t.documento === 'ticket' ? `Ticket folio ${t.contenido?.folio ?? ''}` : 'Corte de caja'}</b>
+                <small>{fechaHora(t.creado_en)}{t.ultimo_error ? ` · ${t.ultimo_error}` : ''}</small>
+              </span>
+              <EstadoImp estado={t.estado} error={t.ultimo_error} impresoTexto="✓ Impresa" />
+              {t.estado === 'error' && (
+                <button className="btn" disabled={ocupado}
+                        onClick={() => accion(() => llamar('reintentar_impresion', { p_trabajo_id: t.id }), 'Se manda otra vez a la impresora de caja')}>
+                  Reintentar
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       {errores.length > 0 && (
         <div className="box" style={{ borderColor: 'var(--er)' }}>
           <h2>No se imprimieron · {errores.length}</h2>

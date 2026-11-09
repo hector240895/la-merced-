@@ -4,6 +4,7 @@ import { useEnVivo } from '../lib/vivo';
 import { useAviso } from '../componentes/Aviso';
 import Pedido, { leerBorradores, type Borrador, type Borradores, CLAVE_BORRADORES } from '../componentes/Pedido';
 import { CifrasCorte, VistaTicket } from '../componentes/Ticket';
+import { EstadoImp } from '../componentes/Comanda';
 import {
   CAMPOS_TRABAJO, METODO, dinero, fechaHora, type Categoria, type CobroExtra, type ContenidoTicket, type Cuenta, type Linea,
   type Mesa, type MetodoPago, type Producto, type Resumen, type Trabajo, type Yo,
@@ -25,6 +26,7 @@ export default function Caja({ yo }: { yo: Yo }) {
   const [extras, setExtras] = useState<CobroExtra[]>([]);
   const [mesas, setMesas] = useState<Mesa[]>([]);
   const [tickets, setTickets] = useState<Trabajo[]>([]);
+  const [precuentas, setPrecuentas] = useState<Trabajo[]>([]);
   const [comandas, setComandas] = useState<Trabajo[]>([]);
   const [movs, setMovs] = useState<Movimiento[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -72,6 +74,7 @@ export default function Caja({ yo }: { yo: Yo }) {
     setExtras((x.data ?? []) as CobroExtra[]);
     const trabajos = (t.data ?? []) as unknown as Trabajo[];
     setTickets(trabajos.filter((j) => (j.contenido as unknown as { documento: string }).documento === 'ticket'));
+    setPrecuentas(trabajos.filter((j) => (j.contenido as unknown as { documento: string }).documento === 'precuenta'));
     setComandas(trabajos.filter((j) => j.contenido.documento === 'comanda'));
     setMovs((mv.data ?? []) as Movimiento[]);
     setMesas((m.data ?? []) as Mesa[]);
@@ -146,7 +149,7 @@ export default function Caja({ yo }: { yo: Yo }) {
           sel={sel} setSel={setSel} nombre={nombreMesa} totalDe={totalDe} ocupado={ocupado} accion={accion}
           nuevoLlevar={() => setLlevar('nuevo')} agregarLlevar={(id) => setLlevar(id)}
           pendienteNuevo={(borradores['llevar:nuevo']?.items.length ?? 0) > 0}
-          irACaja={() => setVista('caja')} verTicket={(t, cambio) => setTicket({ t, cambio })}
+          irACaja={() => setVista('caja')} verTicket={(t, cambio) => setTicket({ t, cambio })} precuentas={precuentas}
         />
       )}
       {resumen !== undefined && vista === 'caja' && (
@@ -165,7 +168,7 @@ interface PropsCobrar {
   sel: string | null; setSel: (id: string | null) => void; nombre: (c: Cuenta) => string; totalDe: (id: string) => number;
   ocupado: boolean; accion: (fn: () => Promise<unknown>, exito?: string) => Promise<boolean>;
   nuevoLlevar: () => void; agregarLlevar: (id: string) => void; pendienteNuevo: boolean;
-  irACaja: () => void; verTicket: (t: ContenidoTicket, cambio?: number) => void;
+  irACaja: () => void; verTicket: (t: ContenidoTicket, cambio?: number) => void; precuentas: Trabajo[];
 }
 
 function Cobrar(props: PropsCobrar) {
@@ -224,7 +227,7 @@ function Cobrar(props: PropsCobrar) {
   );
 }
 
-function Detalle({ c, lineasC, extrasC, ticketC, total, abierta, nombre, ocupado, accion, agregarLlevar, verTicket, setSel }:
+function Detalle({ c, lineasC, extrasC, ticketC, total, abierta, nombre, ocupado, accion, agregarLlevar, verTicket, setSel, precuentas }:
   PropsCobrar & { c: CuentaCaja; lineasC: Linea[]; extrasC: CobroExtra[]; ticketC?: Trabajo; total: number }) {
   const [quitando, setQuitando] = useState<string | null>(null);
   const [motivo, setMotivo] = useState('');
@@ -351,10 +354,27 @@ function Detalle({ c, lineasC, extrasC, ticketC, total, abierta, nombre, ocupado
 
       {editable && total > 0 && (
         <button className="btn s" disabled={ocupado} style={{ marginBottom: 8 }}
-                onClick={() => accion(() => llamar('imprimir_precuenta', { p_cuenta_id: c.id }), 'La cuenta se imprime en caja (no es cobro).')}>
+                onClick={() => accion(() => llamar('imprimir_precuenta', { p_cuenta_id: c.id }), 'La cuenta se manda a la impresora de caja (no es cobro).')}>
           Imprimir cuenta
         </button>
       )}
+      {(() => {
+        // Estado de la última cuenta impresa: así se nota si la impresora no la sacó.
+        const u = precuentas.find((t) => t.cuenta_id === c.id);
+        if (!u || !editable) return null;
+        return (
+          <p className="note" style={{ marginTop: 0 }}>
+            Cuenta impresa a las {new Date(u.creado_en).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}: <EstadoImp estado={u.estado} error={u.ultimo_error} impresoTexto="✓ Impresa" />
+            {u.estado === 'error' && (
+              <>
+                {u.ultimo_error && <span className="falta"> {u.ultimo_error}</span>}{' '}
+                <button className="rm" disabled={ocupado} onClick={() => accion(() => llamar('reintentar_impresion', { p_trabajo_id: u.id }), 'Se manda otra vez a la impresora de caja')}>Reintentar</button>
+              </>
+            )}
+            {u.estado === 'pendiente' && <span> · si no sale en unos segundos, revisa en Comandas que la computadora de caja esté conectada.</span>}
+          </p>
+        );
+      })()}
 
       {cobrada && (
         <>

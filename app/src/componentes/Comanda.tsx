@@ -1,9 +1,9 @@
 import { ESTADO_IMPRESION, type ContenidoComanda, type EstadoImpresion } from '../lib/tipos';
 
-export function EstadoImp({ estado, error }: { estado: EstadoImpresion; error?: string | null }) {
+export function EstadoImp({ estado, error, impresoTexto = '✓ Comanda impresa' }: { estado: EstadoImpresion; error?: string | null; impresoTexto?: string }) {
   return (
     <span className={`imp imp-${estado}`} title={error ?? undefined}>
-      {estado === 'impreso' ? '✓ Comanda impresa' : ESTADO_IMPRESION[estado]}
+      {estado === 'impreso' ? impresoTexto : ESTADO_IMPRESION[estado]}
     </span>
   );
 }
