@@ -51,7 +51,7 @@ export function ticket(t, opciones) {
 }
 
 // Precuenta: la cuenta antes de cobrar, para llevarla a la mesa.
-// (Sin leyendas "cuenta informativa" ni "no pagada", a petición del propietario.)
+// Sin "cuenta informativa" ni "no pagada"; termina con la leyenda de agradecimiento.
 export function precuenta(t, opciones) {
   const d = new Documento({ cortar: false, ...opciones });
   d.alinear('centro').negrita(true).parrafo(t.negocio).negrita(false);
@@ -65,6 +65,8 @@ export function precuenta(t, opciones) {
   for (const x of t.extras ?? []) d.dosColumnas(`Extra: ${x.concepto}`, dinero(x.importe));
   d.separador();
   d.negrita(true).tamano('alto').dosColumnas('TOTAL', dinero(t.total)).tamano(1).negrita(false);
+  // La leyenda de agradecimiento (las precuentas anteriores traían "CUENTA NO PAGADA": no se imprime).
+  if (t.leyenda && t.leyenda !== 'CUENTA NO PAGADA') d.linea().alinear('centro').parrafo(t.leyenda);
   return d.terminar();
 }
 

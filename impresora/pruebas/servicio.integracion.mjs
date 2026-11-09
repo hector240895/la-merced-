@@ -169,7 +169,7 @@ await comprobar('Al pedir la cuenta, la precuenta sale en la impresora de caja c
   if (r.error) throw new Error(r.error.message);
   await esperar(async () => archivos('caja').length === antes + 1);
   const t = leerArchivo('caja', archivos('caja').slice(-1)[0]);
-  if (!t.includes('Mesa 6') || !/TOTAL\s+\$30/.test(t) || /INFORMATIVA|NO PAGADA/.test(t)) throw new Error(t);
+  if (!t.includes('Mesa 6') || !/TOTAL\s+\$30/.test(t) || !t.includes('Gracias por su visita') || /INFORMATIVA|NO PAGADA/.test(t)) throw new Error(t);
 });
 
 await comprobar('El corte de caja sale en la impresora de caja', async () => {

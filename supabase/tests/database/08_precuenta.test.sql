@@ -42,8 +42,8 @@ select is((select contenido ->> 'destino' from trabajos_impresion where document
   'Lleva la mesa para saber de dónde es');
 select is((select (contenido ->> 'total')::numeric from trabajos_impresion where documento = 'precuenta'), 175.00,
   'Lleva el total (2 pozoles $150 + refresco $25)');
-select is((select contenido ->> 'leyenda' from trabajos_impresion where documento = 'precuenta'), 'CUENTA NO PAGADA',
-  'Dice CUENTA NO PAGADA');
+select is((select contenido ->> 'leyenda' from trabajos_impresion where documento = 'precuenta'), '¡Gracias por su visita!',
+  'Termina con la leyenda de agradecimiento');
 select ok((select contenido -> 'lineas' @> '[{"cantidad": 2, "producto": "Pozole rojo chico", "importe": 150.00},
                                             {"producto": "Refresco de vidrio (355 ml)", "opcion": "Pepsi"}]'
            from trabajos_impresion where documento = 'precuenta'), 'Lleva los productos con su sabor e importe');
