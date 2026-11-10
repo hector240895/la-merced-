@@ -11,8 +11,10 @@ import Caja from './Caja';
 import CortesVentas from './propietario/CortesVentas';
 import Catalogo from './propietario/Catalogo';
 import Inventario, { usePorSurtir } from './Inventario';
+import Gastos from './Gastos';
+import Reportes from './propietario/Reportes';
 
-type Pestana = 'salon' | 'caja' | 'cortes' | 'comandas' | 'catalogo' | 'inventario' | 'mesas' | 'usuarios' | 'autorizaciones';
+type Pestana = 'salon' | 'caja' | 'cortes' | 'reportes' | 'gastos' | 'comandas' | 'catalogo' | 'inventario' | 'mesas' | 'usuarios' | 'autorizaciones';
 const CLAVE_PESTANA = 'la-merced-pestana';
 
 export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }) {
@@ -45,7 +47,7 @@ export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }
   useEnVivo(['autorizaciones', 'avisos'], contar);
 
   const pestanas: [Pestana, string][] = [
-    ['salon', 'Salón'], ['caja', 'Caja'], ['cortes', 'Cortes y ventas'], ['comandas', 'Comandas'], ['catalogo', 'Catálogo'], ['inventario', 'Inventario'], ['mesas', 'Mesas'], ['usuarios', 'Usuarios'], ['autorizaciones', 'Autorizaciones y avisos'],
+    ['salon', 'Salón'], ['caja', 'Caja'], ['cortes', 'Cortes y ventas'], ['reportes', 'Reportes'], ['gastos', 'Gastos'], ['comandas', 'Comandas'], ['catalogo', 'Catálogo'], ['inventario', 'Inventario'], ['mesas', 'Mesas'], ['usuarios', 'Usuarios'], ['autorizaciones', 'Autorizaciones y avisos'],
   ];
 
   return (
@@ -66,6 +68,8 @@ export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }
       {pestana === 'salon' && <Salon yo={yo} dentroDePanel />}
       {pestana === 'caja' && <Caja yo={yo} />}
       {pestana === 'cortes' && <main className="ancho"><CortesVentas /></main>}
+      {pestana === 'reportes' && <main className="ancho"><Reportes /></main>}
+      {pestana === 'gastos' && <main className="ancho"><Gastos esPropietario /></main>}
       {pestana === 'comandas' && <main className="ancho"><Comandas /></main>}
       {pestana === 'catalogo' && <main className="ancho"><Catalogo /></main>}
       {pestana === 'inventario' && <main className="ancho"><Inventario esPropietario /></main>}

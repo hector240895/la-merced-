@@ -3,11 +3,12 @@ import type { Yo } from '../lib/tipos';
 import Caja from './Caja';
 import Comandas from './Comandas';
 import Inventario, { usePorSurtir } from './Inventario';
+import Gastos from './Gastos';
 
 // Pantalla de caja: cobrar, caja del día (movimientos y corte), comandas e
-// inventario (compras y entradas).
+// gastos pagados con la caja e inventario (compras y entradas).
 export default function Cajero({ yo, salir }: { yo: Yo; salir: () => void }) {
-  const [pestana, setPestana] = useState<'caja' | 'comandas' | 'inventario'>('caja');
+  const [pestana, setPestana] = useState<'caja' | 'comandas' | 'gastos' | 'inventario'>('caja');
   const porSurtir = usePorSurtir(true);
   return (
     <>
@@ -16,6 +17,7 @@ export default function Cajero({ yo, salir }: { yo: Yo; salir: () => void }) {
         <nav className="nav">
           <button className={pestana === 'caja' ? 'on' : ''} onClick={() => setPestana('caja')}>Caja</button>
           <button className={pestana === 'comandas' ? 'on' : ''} onClick={() => setPestana('comandas')}>Comandas</button>
+          <button className={pestana === 'gastos' ? 'on' : ''} onClick={() => setPestana('gastos')}>Gastos</button>
           <button className={pestana === 'inventario' ? 'on' : ''} onClick={() => setPestana('inventario')}>
             Inventario{porSurtir > 0 && <span className="num">{porSurtir}</span>}
           </button>
@@ -24,6 +26,7 @@ export default function Cajero({ yo, salir }: { yo: Yo; salir: () => void }) {
       </header>
       {pestana === 'caja' && <Caja yo={yo} />}
       {pestana === 'comandas' && <main className="ancho"><Comandas /></main>}
+      {pestana === 'gastos' && <main className="ancho"><Gastos esPropietario={false} /></main>}
       {pestana === 'inventario' && <main className="ancho"><Inventario esPropietario={false} /></main>}
     </>
   );

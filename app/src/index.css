@@ -213,3 +213,21 @@ h3.sub { font: 600 14px Figtree, sans-serif; color: var(--mute); margin: 14px 0 
 .formulario input, .formulario select, .formulario textarea { width: 100%; }
 .par { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .par > span { min-width: 0; }
+/* Reportes (Etapa 9) */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kpi { background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.kpi b { display: block; font-size: 26px; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.kpi small { color: var(--mute); display: block; }
+.kpi.pos b { color: var(--gt); }
+.kpi.neg b { color: var(--er); }
+.fila-barra { display: grid; grid-template-columns: minmax(90px, 1.2fr) 2fr auto; gap: 10px; align-items: center; padding: 5px 0; }
+.fila-barra > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fila-barra b { text-align: right; font-variant-numeric: tabular-nums; min-width: 70px; }
+.fila-barra b small { display: block; color: var(--mute); font-weight: 400; }
+.barras { display: grid; gap: 3px; }
+.barra { display: block; height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.barra > span { display: block; height: 100%; background: var(--g); border-radius: 99px; }
+.barra > span.r { background: var(--er); opacity: .8; }
+.clave { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin: 0 4px 0 8px; vertical-align: middle; }
+.clave.v { background: var(--g); }
+.clave.g { background: var(--er); opacity: .8; }

@@ -3,6 +3,7 @@ import { llamar, mensajeDe, supabase } from '../lib/supabase';
 import { useEnVivo } from '../lib/vivo';
 import { useAviso } from '../componentes/Aviso';
 import { dinero, fechaHora } from '../lib/tipos';
+import { FORMA_PAGO, type FormaPago } from '../lib/finanzas';
 
 // Inventario manual: las existencias solo cambian con lo que se registra aquí.
 // Propietarios: todo. Caja: compras (se vuelven gasto) y entradas.
@@ -36,7 +37,7 @@ export default function Inventario({ esPropietario }: { esPropietario: boolean }
   const [fInsumo, setFInsumo] = useState<FormInsumo | null>(null);
   const [fProveedor, setFProveedor] = useState<FormProveedor | null>(null);
   const [fMov, setFMov] = useState<FormMov | null>(null);
-  const [compra, setCompra] = useState<{ proveedor_id: string; nota: string; renglones: Renglon[] } | null>(null);
+  const [compra, setCompra] = useState<{ proveedor_id: string; nota: string; forma: FormaPago; renglones: Renglon[] } | null>(null);
 
   const cargar = useCallback(async () => {
     const [i, p] = await Promise.all([
@@ -71,7 +72,7 @@ export default function Inventario({ esPropietario }: { esPropietario: boolean }
 
   function nuevaCompra(insumo?: Insumo) {
     setCompra({
-      proveedor_id: insumo?.proveedor_id ?? '', nota: '',
+      proveedor_id: insumo?.proveedor_id ?? '', nota: '', forma: esPropietario ? 'efectivo' : 'caja',
       renglones: [{ insumo_id: insumo?.id ?? '', cantidad: '', costo: '' }],
     });
   }
@@ -84,6 +85,7 @@ export default function Inventario({ esPropietario }: { esPropietario: boolean }
         insumo_id: r.insumo_id, cantidad: r.cantidad === '' ? null : Number(r.cantidad), costo: r.costo === '' ? null : Number(r.costo),
       })),
       p_nota: compra.nota || null,
+      p_forma_pago: compra.forma,
     }), `Compra registrada por ${dinero(totalCompra)} (también quedó como gasto)`);
     if (ok) setCompra(null);
   }
@@ -251,6 +253,14 @@ export default function Inventario({ esPropietario }: { esPropietario: boolean }
             })}
             <p><button className="btn s" type="button"
                        onClick={() => setCompra({ ...compra, renglones: [...compra.renglones, { insumo_id: '', cantidad: '', costo: '' }] })}>Agregar otro insumo</button></p>
+            {esPropietario ? (
+              <>
+                <label htmlFor="c-forma">¿Cómo se pagó?</label>
+                <select id="c-forma" value={compra.forma} onChange={(e) => setCompra({ ...compra, forma: e.target.value as FormaPago })}>
+                  {(['efectivo', 'transferencia', 'tarjeta', 'caja'] as FormaPago[]).map((f) => <option key={f} value={f}>{FORMA_PAGO[f]}</option>)}
+                </select>
+              </>
+            ) : <p className="hint">Se paga con el efectivo de la caja y se descuenta del corte.</p>}
             <label htmlFor="c-nota">Nota (opcional, p. ej. número de factura)</label>
             <input id="c-nota" value={compra.nota} onChange={(e) => setCompra({ ...compra, nota: e.target.value })} />
             <p className="tot"><b>Total: {dinero(totalCompra)}</b></p>

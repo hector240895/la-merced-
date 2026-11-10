@@ -80,6 +80,10 @@ const fila = (page, nombre) => page.locator('.box', { hasText: 'Existencias' }).
   });
 
   const laura = await sesion(navegador, 'laura', CLAVES.laura);
+  await laura.getByRole('button', { name: 'Caja y corte' }).click();
+  await laura.getByLabel('Fondo inicial').fill('1000');
+  await laura.getByRole('button', { name: 'Abrir caja', exact: true }).click();
+  await laura.locator('.chip', { hasText: 'Caja abierta' }).waitFor();
   await laura.getByRole('button', { name: /^Inventario/ }).click();
   await comprobar('El cajero ve existencias pero no puede dar de alta, mermar ni contar', async () => {
     await fila(laura, 'Tortilla').waitFor();
