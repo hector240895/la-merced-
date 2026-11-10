@@ -3,6 +3,7 @@
 
 const ESC = 0x1b;
 const GS = 0x1d;
+const FS = 0x1c;
 
 // Tablas de caracteres. Cada impresora elige una con "ESC t n"; el asistente
 // de configuración imprime una prueba con ambas para escoger la que se ve bien.
@@ -46,7 +47,14 @@ export class Documento {
     this.ancho = ancho;
     this.tabla = tabla;
     this.cortar = cortar;
-    this.bytes = [ESC, 0x40, ESC, 0x74, TABLAS[tabla].n];   // inicializar + tabla de caracteres
+    // Inicializar y elegir la tabla de caracteres. Con CP1252 (la NE-510X de caja)
+    // primero se apaga el modo de caracteres chinos (FS .), que si no revuelve los
+    // acentos. La tabla CP850 (cocina) queda como estaba.
+    this.bytes = [
+      ESC, 0x40,
+      ...(tabla === 'cp1252' ? [FS, 0x2e] : []),
+      ESC, 0x74, TABLAS[tabla].n,
+    ];
   }
   crudo(...b) { this.bytes.push(...b); return this; }
   alinear(a) { return this.crudo(ESC, 0x61, { izquierda: 0, centro: 1, derecha: 2 }[a]); }

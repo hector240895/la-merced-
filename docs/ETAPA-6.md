@@ -104,6 +104,12 @@ Si algo no sale bien, mándame el número de la prueba y lo que viste, y la part
 `C:\Users\<tu usuario>\AppData\Roaming\LaMercedImpresion\registro.log`
 (escribe `%APPDATA%\LaMercedImpresion` en la barra del explorador de archivos).
 
+## Acentos en la impresora de caja (10 de noviembre de 2026)
+
+La NE-510X trae activado el modo de caracteres chinos, que revuelve los acentos. Desde la versión 1.1.3, cuando una impresora usa la tabla **B (Windows-1252)**, el programa primero apaga ese modo (comando `FS .`) y después elige la tabla. La impresora de cocina (tabla A) no cambia.
+
+Para que se aplique, la impresora de **caja** debe tener la tabla **B**. Puedes revisarlo en `%APPDATA%\LaMercedImpresion\config.json`: en `"caja"` debe decir `"tabla": "cp1252"`. Si dice `"cp850"`, vuelve a correr `instalar.bat` y elige **B** para caja.
+
 ## Mantenimiento
 
 | Necesito… | Haz esto en `C:\LaMerced\la-merced--main\impresora` |

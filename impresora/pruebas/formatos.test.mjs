@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { codificar, partir } from '../src/escpos.mjs';
+import { codificar, partir, Documento } from '../src/escpos.mjs';
 import { comanda, ticket, corte, precuenta } from '../src/formatos.mjs';
 
 // Convierte los bytes impresos de vuelta a texto legible (sin comandos).
@@ -10,6 +10,7 @@ function leer(bytes, tabla = 'cp850') {
   let s = '';
   for (let i = 0; i < bytes.length; i++) {
     const b = bytes[i];
+    if (b === 0x1c) { i += 1; continue; }   // FS . (sin caracteres chinos)
     if (b === 0x1b || b === 0x1d) { i += (bytes[i + 1] === 0x40 ? 1 : bytes[i + 1] === 0x56 ? 3 : 2); continue; }
     s += b === 0x0a ? '\n' : b < 0x80 ? String.fromCharCode(b) : (inverso.get(b) ?? '?');
   }
@@ -102,4 +103,20 @@ test('precuenta: mesa, productos, total y agradecimiento, en 58 mm', () => {
   assert.match(t, /¡Gracias por su visita!/);
   assert.doesNotMatch(t, /CUENTA INFORMATIVA|NO PAGADA/);
   for (const r of t.split('\n')) assert.ok(r.length <= 32, `renglón demasiado largo: "${r}"`);
+});
+
+test('CP1252 apaga el modo de caracteres chinos antes de elegir la tabla; CP850 no cambia', () => {
+  const caja = [...new Documento({ tabla: 'cp1252' }).terminar().slice(0, 7)];
+  assert.deepEqual(caja, [0x1b, 0x40, 0x1c, 0x2e, 0x1b, 0x74, 16]);
+  const cocina = [...new Documento({ tabla: 'cp850' }).terminar().slice(0, 5)];
+  assert.deepEqual(cocina, [0x1b, 0x40, 0x1b, 0x74, 2]);
+});
+
+test('ticket en CP1252 conserva los acentos', () => {
+  const t = leer(ticket({ negocio: 'Cenaduría La Merced', leyenda: '¡Gracias por su visita!', folio: 1, fecha: '10/11/2026', hora: '20:00',
+    total: 45, recibido: null, cambio: null, lineas: [{ cantidad: 1, producto: 'Champiñones', importe: 45 }], extras: [] },
+    { ancho: 32, tabla: 'cp1252' }), 'cp1252');
+  assert.match(t, /Cenaduría La Merced/);
+  assert.match(t, /1 Champiñones\s+\$45/);
+  assert.match(t, /¡Gracias por su visita!/);
 });
