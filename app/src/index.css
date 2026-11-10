@@ -211,3 +211,5 @@ h3.sub { font: 600 14px Figtree, sans-serif; color: var(--mute); margin: 14px 0 
 .selec textarea { width: 100%; min-height: 90px; font: inherit; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 8px 10px; }
 .formulario label { display: block; font-weight: 600; margin: 10px 0 4px; }
 .formulario input, .formulario select, .formulario textarea { width: 100%; }
+.par { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.par > span { min-width: 0; }
