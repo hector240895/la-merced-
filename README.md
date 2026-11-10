@@ -18,7 +18,7 @@ mesas, comandas impresas, caja, catálogo, inventario manual, gastos y reportes.
 | 5 | Caja y pagos | Terminada → [docs/ETAPA-5.md](docs/ETAPA-5.md) |
 | 6 | Impresoras | Terminada → [docs/ETAPA-6.md](docs/ETAPA-6.md) |
 | 7 | Catálogo | Terminada → [docs/ETAPA-7.md](docs/ETAPA-7.md) |
-| 8 | Inventario | Lista para revisión → [docs/ETAPA-8.md](docs/ETAPA-8.md) |
+| 8 | Inventario | Terminada → [docs/ETAPA-8.md](docs/ETAPA-8.md) |
 | 9 | Finanzas y reportes | Pendiente |
 | 10 | Pruebas y puesta en marcha | Pendiente |
 
