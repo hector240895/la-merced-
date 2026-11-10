@@ -231,3 +231,6 @@ h3.sub { font: 600 14px Figtree, sans-serif; color: var(--mute); margin: 14px 0 
 .clave { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin: 0 4px 0 8px; vertical-align: middle; }
 .clave.v { background: var(--g); }
 .clave.g { background: var(--er); opacity: .8; }
+.duenos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.dueno { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.dueno > small { display: block; color: var(--mute); margin-bottom: 6px; }

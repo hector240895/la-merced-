@@ -16,27 +16,29 @@ const PUESTOS = ['Lavaloza', 'Cocinera', 'Mesero', 'Cajero'];
 const PERIODICIDAD = { semanal: 'semana', quincenal: 'quincena', mensual: 'mes' } as const;
 const FORMAS_PROPIETARIO: FormaPago[] = ['efectivo', 'transferencia', 'tarjeta', 'caja'];
 
-type FormGasto = { categoria_id: string; concepto: string; monto: string; forma: FormaPago; fecha: string; nota: string };
+type FormGasto = { categoria_id: string; concepto: string; monto: string; forma: FormaPago; fecha: string; nota: string; pagado_por: string };
 type FormEmpleado = { id: string | null; nombre: string; puesto: string; sueldo: string; periodicidad: Empleado['periodicidad'] };
-type FormFijo = { id: string | null; categoria_id: string; concepto: string; monto: string; dia: string; forma: FormaPago };
+type FormFijo = { id: string | null; categoria_id: string; concepto: string; monto: string; dia: string; forma: FormaPago; pagado_por: string };
 
-export default function Gastos({ esPropietario }: { esPropietario: boolean }) {
+export default function Gastos({ esPropietario, yoId = '' }: { esPropietario: boolean; yoId?: string }) {
   const aviso = useAviso();
   const [seccion, setSeccion] = useState<Seccion>('gastos');
   const [categorias, setCategorias] = useState<CategoriaGasto[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [fijos, setFijos] = useState<GastoFijo[]>([]);
+  const [duenos, setDuenos] = useState<{ id: string; nombre: string }[]>([]);
+  const [filtroDueno, setFiltroDueno] = useState('');
   const [periodo, setPeriodo] = useState<Periodo>(esPropietario ? 'mes' : 'hoy');
   const [fechas, setFechas] = useState<[string, string]>([hoy(), hoy()]);
   const [filtro, setFiltro] = useState('');
   const [ocupado, setOcupado] = useState(false);
-  const vacio = (): FormGasto => ({ categoria_id: '', concepto: '', monto: '', forma: esPropietario ? 'efectivo' : 'caja', fecha: hoy(), nota: '' });
+  const vacio = (): FormGasto => ({ categoria_id: '', concepto: '', monto: '', forma: esPropietario ? 'efectivo' : 'caja', fecha: hoy(), nota: '', pagado_por: yoId });
   const [fGasto, setFGasto] = useState<FormGasto | null>(null);
   const [anulando, setAnulando] = useState<Gasto | null>(null);
   const [motivo, setMotivo] = useState('');
   const [fEmpleado, setFEmpleado] = useState<FormEmpleado | null>(null);
-  const [nomina, setNomina] = useState<{ periodo: string; forma: FormaPago; fecha: string; montos: Record<string, string> } | null>(null);
+  const [nomina, setNomina] = useState<{ periodo: string; forma: FormaPago; fecha: string; pagado_por: string; montos: Record<string, string> } | null>(null);
   const [fFijo, setFFijo] = useState<FormFijo | null>(null);
   const [nuevaCat, setNuevaCat] = useState('');
   const [renombres, setRenombres] = useState<Record<string, string>>({});
@@ -48,16 +50,18 @@ export default function Gastos({ esPropietario }: { esPropietario: boolean }) {
     const [c, g] = await Promise.all([
       supabase.from('categorias_gasto').select('id, clave, nombre, orden').is('eliminado_en', null).order('orden').order('nombre'),
       supabase.from('gastos')
-        .select('id, categoria_id, concepto, monto, fecha, forma_pago, estado, nota, anulacion_motivo, gasto_fijo_id, creado_en, usuarios!gastos_creado_por_fkey(nombre)')
+        .select('id, categoria_id, concepto, monto, fecha, forma_pago, estado, nota, anulacion_motivo, gasto_fijo_id, creado_en, pagado_por, usuarios!gastos_creado_por_fkey(nombre)')
         .gte('fecha', desde).lte('fecha', hasta).order('fecha', { ascending: false }).order('creado_en', { ascending: false }),
     ]);
     if (c.data) setCategorias(c.data as CategoriaGasto[]);
     if (g.data) setGastos(g.data as unknown as Gasto[]);
     if (esPropietario) {
-      const [e, f] = await Promise.all([
+      const [e, f, d] = await Promise.all([
         supabase.from('empleados').select('id, nombre, puesto, sueldo, periodicidad').is('eliminado_en', null).order('nombre'),
-        supabase.from('gastos_fijos').select('id, categoria_id, concepto, monto, dia, forma_pago, desde').is('eliminado_en', null).order('dia'),
+        supabase.from('gastos_fijos').select('id, categoria_id, concepto, monto, dia, forma_pago, desde, pagado_por').is('eliminado_en', null).order('dia'),
+        supabase.from('usuarios').select('id, nombre').eq('perfil', 'propietario').eq('activo', true).order('nombre'),
       ]);
+      if (d.data) setDuenos(d.data);
       if (e.data) setEmpleados(e.data as Empleado[]);
       if (f.data) setFijos(f.data as GastoFijo[]);
     }
@@ -75,8 +79,12 @@ export default function Gastos({ esPropietario }: { esPropietario: boolean }) {
   // Caja no registra renta ni sueldos.
   const catsParaGasto = categorias.filter((c) => esPropietario || !['renta', 'nomina'].includes(c.clave ?? ''));
   const vigentes = gastos.filter((g) => g.estado === 'vigente');
-  const visibles = filtro ? gastos.filter((g) => g.categoria_id === filtro) : gastos;
-  const total = vigentes.filter((g) => !filtro || g.categoria_id === filtro).reduce((s, g) => s + Number(g.monto), 0);
+  const nombreDueno = (id: string | null) => duenos.find((d) => d.id === id)?.nombre;
+  // Filtro por dueño: un id, "caja" o vacío (todos).
+  const deDueno = (g: Gasto) => !filtroDueno || (filtroDueno === 'caja' ? g.forma_pago === 'caja' : g.pagado_por === filtroDueno);
+  const pasa = (g: Gasto) => (!filtro || g.categoria_id === filtro) && deDueno(g);
+  const visibles = gastos.filter(pasa);
+  const total = vigentes.filter(pasa).reduce((s, g) => s + Number(g.monto), 0);
   const totalNomina = nomina ? Object.values(nomina.montos).reduce((s, m) => s + (Number(m) || 0), 0) : 0;
 
   async function guardarGasto() {
@@ -84,13 +92,14 @@ export default function Gastos({ esPropietario }: { esPropietario: boolean }) {
     const ok = await hacer(() => llamar('registrar_gasto', {
       p_categoria_id: fGasto.categoria_id || null, p_concepto: fGasto.concepto, p_monto: fGasto.monto === '' ? null : Number(fGasto.monto),
       p_forma_pago: fGasto.forma, p_fecha: fGasto.fecha, p_nota: fGasto.nota || null,
+      ...(esPropietario && fGasto.forma !== 'caja' ? { p_pagado_por: fGasto.pagado_por || null } : {}),
     }), `Gasto de ${dinero(Number(fGasto.monto))} registrado`);
     if (ok) setFGasto(null);
   }
 
   function abrirNomina() {
     setNomina({
-      periodo: '', forma: 'efectivo', fecha: hoy(),
+      periodo: '', forma: 'efectivo', fecha: hoy(), pagado_por: yoId,
       montos: Object.fromEntries(empleados.map((e) => [e.id, String(Number(e.sueldo))])),
     });
   }
@@ -133,6 +142,11 @@ export default function Gastos({ esPropietario }: { esPropietario: boolean }) {
                     <option value="">Todas las categorías</option>
                     {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                   </select>
+                  <select aria-label="Quién pagó" value={filtroDueno} onChange={(e) => setFiltroDueno(e.target.value)}>
+                    <option value="">Pagado por todos</option>
+                    {duenos.map((d) => <option key={d.id} value={d.id}>Pagó {d.nombre}</option>)}
+                    <option value="caja">Pagado con la caja</option>
+                  </select>
                 </>
               )}
             </div>
@@ -146,6 +160,7 @@ export default function Gastos({ esPropietario }: { esPropietario: boolean }) {
                   <b style={g.estado === 'anulado' ? { textDecoration: 'line-through' } : undefined}>{g.concepto}</b>
                   <small>
                     {fechaCorta(g.fecha)} · {nombreCat(g.categoria_id)} · {FORMA_PAGO[g.forma_pago]}
+                    {esPropietario && nombreDueno(g.pagado_por) ? ` · pagó ${nombreDueno(g.pagado_por)}` : ''}
                     {g.gasto_fijo_id ? ' · automático' : ` · ${g.usuarios?.nombre ?? '—'}`}{g.nota ? ` · ${g.nota}` : ''}
                     {g.estado === 'anulado' ? ` · ANULADO: ${g.anulacion_motivo}` : ''}
                   </small>
@@ -190,15 +205,15 @@ export default function Gastos({ esPropietario }: { esPropietario: boolean }) {
           <p className="hint">Se registran solos cada mes en el día que elijas. Si cambias el monto, cuenta desde el siguiente mes.</p>
           <div className="f">
             <button className="btn" disabled={ocupado}
-                    onClick={() => setFFijo({ id: null, categoria_id: categorias.find((c) => c.clave === 'renta')?.id ?? '', concepto: 'Renta del local', monto: '', dia: '1', forma: 'transferencia' })}>Agregar gasto fijo</button>
+                    onClick={() => setFFijo({ id: null, categoria_id: categorias.find((c) => c.clave === 'renta')?.id ?? '', concepto: 'Renta del local', monto: '', dia: '1', forma: 'transferencia', pagado_por: yoId })}>Agregar gasto fijo</button>
           </div>
           {fijos.length === 0 && <p className="vacio">Sin gastos fijos. Agrega la renta para que se registre sola.</p>}
           {fijos.map((f) => (
             <div className="row" key={f.id}>
-              <span className="n"><b>{f.concepto}</b><small>{nombreCat(f.categoria_id)} · día {f.dia} de cada mes · {FORMA_PAGO[f.forma_pago]}</small></span>
+              <span className="n"><b>{f.concepto}</b><small>{nombreCat(f.categoria_id)} · día {f.dia} de cada mes · {FORMA_PAGO[f.forma_pago]}{nombreDueno(f.pagado_por) ? ` · paga ${nombreDueno(f.pagado_por)}` : ''}</small></span>
               <span className="chip">{dinero(f.monto)} al mes</span>
               <button className="btn s" disabled={ocupado} aria-label={`Editar ${f.concepto}`}
-                      onClick={() => setFFijo({ id: f.id, categoria_id: f.categoria_id, concepto: f.concepto, monto: String(Number(f.monto)), dia: String(f.dia), forma: f.forma_pago })}>Editar</button>
+                      onClick={() => setFFijo({ id: f.id, categoria_id: f.categoria_id, concepto: f.concepto, monto: String(Number(f.monto)), dia: String(f.dia), forma: f.forma_pago, pagado_por: f.pagado_por ?? yoId })}>Editar</button>
               <button className="btn s d" disabled={ocupado} aria-label={`Quitar ${f.concepto}`}
                       onClick={() => { if (confirm(`¿Dejar de registrar "${f.concepto}" cada mes? Lo ya registrado se conserva.`)) hacer(() => llamar('eliminar_gasto_fijo', { p_id: f.id }), 'Gasto fijo quitado'); }}>Quitar</button>
             </div>
@@ -260,6 +275,14 @@ export default function Gastos({ esPropietario }: { esPropietario: boolean }) {
               </div>
             ) : (
               <p className="hint">Se paga con el efectivo de la caja y se descuenta del corte.</p>
+            )}
+            {esPropietario && fGasto.forma !== 'caja' && (
+              <>
+                <label htmlFor="g-quien">¿Quién lo pagó?</label>
+                <select id="g-quien" value={fGasto.pagado_por} onChange={(e) => setFGasto({ ...fGasto, pagado_por: e.target.value })}>
+                  {duenos.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+                </select>
+              </>
             )}
             {esPropietario && fGasto.forma === 'caja' && <p className="hint">Sale de la caja abierta y baja el efectivo esperado del corte.</p>}
             <label htmlFor="g-nota">Nota (opcional)</label>
@@ -351,6 +374,14 @@ export default function Gastos({ esPropietario }: { esPropietario: boolean }) {
                 <input id="n-fecha" type="date" max={hoy()} value={nomina.fecha} onChange={(e) => setNomina({ ...nomina, fecha: e.target.value })} />
               </span>
             </div>
+            {nomina.forma !== 'caja' && (
+              <>
+                <label htmlFor="n-quien">¿Quién pagó?</label>
+                <select id="n-quien" value={nomina.pagado_por} onChange={(e) => setNomina({ ...nomina, pagado_por: e.target.value })}>
+                  {duenos.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+                </select>
+              </>
+            )}
             <p className="tot"><span>Total</span><span>{dinero(totalNomina)}</span></p>
             <div className="f" style={{ marginTop: 12 }}>
               <button className="btn s" type="button" onClick={() => setNomina(null)}>Cancelar</button>
@@ -358,6 +389,7 @@ export default function Gastos({ esPropietario }: { esPropietario: boolean }) {
                 const ok = await hacer(() => llamar('pagar_sueldos', {
                   p_pagos: Object.entries(nomina.montos).map(([empleado_id, m]) => ({ empleado_id, monto: Number(m) || 0 })),
                   p_periodo: nomina.periodo, p_forma_pago: nomina.forma, p_fecha: nomina.fecha,
+                  ...(nomina.forma !== 'caja' ? { p_pagado_por: nomina.pagado_por || null } : {}),
                 }), `Sueldos registrados por ${dinero(totalNomina)}`);
                 if (ok) setNomina(null);
               }}>Registrar sueldos</button>
@@ -391,13 +423,17 @@ export default function Gastos({ esPropietario }: { esPropietario: boolean }) {
             <select id="x-forma" value={fFijo.forma} onChange={(e) => setFFijo({ ...fFijo, forma: e.target.value as FormaPago })}>
               {FORMAS_PROPIETARIO.filter((f) => f !== 'caja').map((f) => <option key={f} value={f}>{FORMA_PAGO[f]}</option>)}
             </select>
+            <label htmlFor="x-quien">¿Quién lo paga?</label>
+            <select id="x-quien" value={fFijo.pagado_por} onChange={(e) => setFFijo({ ...fFijo, pagado_por: e.target.value })}>
+              {duenos.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+            </select>
             {!fFijo.id && <p className="hint">Cuenta desde este mes: si el día ya pasó, el de este mes se registra al guardar.</p>}
             <div className="f" style={{ marginTop: 12 }}>
               <button className="btn s" type="button" onClick={() => setFFijo(null)}>Cancelar</button>
               <button className="btn" disabled={ocupado} onClick={async () => {
                 const ok = await hacer(() => llamar('guardar_gasto_fijo', {
                   p_id: fFijo.id, p_categoria_id: fFijo.categoria_id || null, p_concepto: fFijo.concepto,
-                  p_monto: fFijo.monto === '' ? null : Number(fFijo.monto), p_dia: fFijo.dia === '' ? null : Number(fFijo.dia), p_forma_pago: fFijo.forma,
+                  p_monto: fFijo.monto === '' ? null : Number(fFijo.monto), p_dia: fFijo.dia === '' ? null : Number(fFijo.dia), p_forma_pago: fFijo.forma, p_pagado_por: fFijo.pagado_por || null,
                 }), fFijo.id ? 'Gasto fijo actualizado' : 'Gasto fijo agregado');
                 if (ok) setFFijo(null);
               }}>{fFijo.id ? 'Guardar cambios' : 'Agregar gasto fijo'}</button>

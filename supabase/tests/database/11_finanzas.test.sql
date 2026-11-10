@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(30);
+select plan(36);
 
 create function pg_temp.como(p_id uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true),
@@ -108,6 +108,27 @@ select is((select (j -> 'gastos' ->> 'total')::numeric from r), 10120.00, 'Gasto
 select is((select (j ->> 'utilidad')::numeric from r), -10060.00, 'Utilidad real = ventas − gastos');
 select is((select j -> 'productos' -> 0 ->> 'producto' || ' ' || (j -> 'productos' -> 0 ->> 'cantidad') from r), 'Café de olla 2', 'Productos vendidos');
 select is((select (j -> 'anterior' ->> 'gastos')::numeric from r), 8000.00, 'Compara con el mes anterior');
+reset role;
+
+-- ---------------------------------------------------------------- Quién pagó
+select pg_temp.como('11111111-1111-1111-1111-111111111111');
+insert into v select 'g_wendy', (public.registrar_gasto((select id from v where clave = 'gas'), 'Gas que pagó Wendy', 500, 'efectivo',
+  null, null, '22222222-2222-2222-2222-222222222222')).id;
+reset role;
+select is((select pagado_por from gastos where id = (select id from v where clave = 'g_wendy')),
+  '22222222-2222-2222-2222-222222222222'::uuid, 'Se puede anotar que lo pagó el otro dueño');
+select is((select pagado_por from gastos where concepto = 'Garrafones'), '11111111-1111-1111-1111-111111111111'::uuid,
+  'Si no se elige, lo pagó quien lo registra');
+select is((select count(*)::int from gastos where forma_pago = 'caja' and pagado_por is not null), 0, 'Lo pagado con la caja no es de ningún dueño');
+select is((select count(*)::int from gastos where gasto_fijo_id is not null and pagado_por = '11111111-1111-1111-1111-111111111111'), 3,
+  'La renta automática la paga el dueño del gasto fijo');
+select pg_temp.como('44444444-4444-4444-4444-444444444444');
+select throws_ok($$ select public.registrar_gasto((select id from v where clave = 'gas'), 'Gas', 10, 'caja', null, null,
+  '11111111-1111-1111-1111-111111111111') $$, 'Desde caja los gastos se pagan con el efectivo de la caja', 'Caja no asigna gastos a un dueño');
+select pg_temp.como('22222222-2222-2222-2222-222222222222');
+select is((select jsonb_object_agg(x ->> 'quien', (x ->> 'total')::numeric) from jsonb_array_elements(
+  public.gastos_por_dueno((select mes from f), (select hoy from f))) x),
+  '{"Hector Navarro": 10120, "Wendy Rivas": 500}'::jsonb, 'Gastos por dueño en el mes');
 reset role;
 
 select * from finish();

@@ -69,7 +69,7 @@ export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }
       {pestana === 'caja' && <Caja yo={yo} />}
       {pestana === 'cortes' && <main className="ancho"><CortesVentas /></main>}
       {pestana === 'reportes' && <main className="ancho"><Reportes /></main>}
-      {pestana === 'gastos' && <main className="ancho"><Gastos esPropietario /></main>}
+      {pestana === 'gastos' && <main className="ancho"><Gastos esPropietario yoId={yo.id} /></main>}
       {pestana === 'comandas' && <main className="ancho"><Comandas /></main>}
       {pestana === 'catalogo' && <main className="ancho"><Catalogo /></main>}
       {pestana === 'inventario' && <main className="ancho"><Inventario esPropietario /></main>}

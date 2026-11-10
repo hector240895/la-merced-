@@ -18,6 +18,9 @@ La pestaña tiene cuatro secciones:
   - Si se pagó con la caja y esta sigue abierta, el efectivo regresa a la caja.
   - Si era una compra de inventario, se descuenta del inventario.
 - Las compras de la pestaña Inventario aparecen aquí solas.
+- **¿Quién lo pagó?**: Hector o Wendy. Por defecto, el dueño que lo registra; se puede elegir al otro. Lo pagado con el efectivo de la caja es "Caja".
+  - También al pagar sueldos y en cada gasto fijo, por ejemplo "la renta la paga Hector".
+  - La lista se puede filtrar por quién pagó.
 
 **Sueldos**
 - Agrega a cada empleado con puesto y sueldo fijo por semana, quincena o mes.
@@ -53,6 +56,7 @@ La pestaña tiene cuatro secciones:
 - **Ventas**: por forma de pago, con las devoluciones restadas; también cuentas cobradas y ticket promedio.
   - Las propinas se muestran aparte porque son de los meseros.
 - **Gastos** por categoría.
+- **Gastos por dueño**: cuánto pagó Hector, cuánto Wendy y cuánto salió de la caja, cada uno con su detalle por categoría.
 - **Por día**: ventas y gastos de cada día.
 - **Horas con más venta.**
 - **Meseros**: cuentas, ventas y propinas de cada uno.
@@ -69,6 +73,7 @@ Los precios del menú incluyen IVA, así que las ventas del reporte también.
 | `20261118000100_categorias_gasto.sql` | Categorías nuevas y formas de pago de gastos |
 | `20261118000200_finanzas.sql` | Categorías editables, gastos con forma de pago, gastos fijos, empleados y sueldos, anulación y reporte de utilidad |
 | `20261118000300_gasto_fijo_mes.sql` | Un gasto fijo nuevo cuenta desde el mes en curso |
+| `20261119000100_gastos_por_dueno.sql` | Quién pagó cada gasto y gastos por dueño |
 
 ## Cómo subirlo
 
@@ -92,17 +97,18 @@ Vercel publica la app sola. En Supabase → SQL Editor corre `supabase/verificar
    - En **Caja y corte** aparece "Gasto: 4 garrafones" y el efectivo esperado baja $120.
 6. **Aviso.** Como `wendy` → **Autorizaciones y avisos**: aparece el gasto de caja.
 7. **Anular.** Como `hector`, **Anular** el gasto de garrafones con un motivo. El efectivo regresa a la caja.
-8. **Reporte.** **Reportes** → **Este mes**: ventas, gastos por categoría y utilidad real. Toca **Exportar a Excel**.
+8. **Gasto de otro dueño.** Como `hector`, registra "Tanque de gas" $300 y en **¿Quién lo pagó?** elige Wendy Rivas.
+9. **Reporte.** **Reportes** → **Este mes**: ventas, gastos por categoría y utilidad real. En **Gastos por dueño** ves lo de Hector y lo de Wendy por separado. Toca **Exportar a Excel**.
 
 Como estos son datos de prueba, al terminar puedes anular los gastos, quitar la renta y los empleados de prueba y luego capturar los reales.
 
 ## Pruebas automáticas
 
-- **Base de datos:** 30 pruebas nuevas en `supabase/tests/database/11_finanzas.test.sql` (314 en total). Cubren:
+- **Base de datos:** 36 pruebas nuevas en `supabase/tests/database/11_finanzas.test.sql` (320 en total). Cubren:
   - Categorías editables y las del sistema que no se quitan.
   - Gastos de caja que bajan el efectivo esperado y no rebasan lo que hay.
   - Permisos de caja.
   - Anulación con regreso del efectivo.
   - Renta automática sin duplicados.
-  - Sueldos y el reporte de utilidad.
-- **Navegador:** `app/pruebas/finanzas.e2e.cjs`, 10 comprobaciones con propietarios y caja al mismo tiempo.
+  - Sueldos, el reporte de utilidad y los gastos por dueño.
+- **Navegador:** `app/pruebas/finanzas.e2e.cjs`, 12 comprobaciones con propietarios y caja al mismo tiempo.

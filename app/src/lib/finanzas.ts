@@ -9,10 +9,10 @@ export interface CategoriaGasto { id: string; clave: string | null; nombre: stri
 export interface Gasto {
   id: string; categoria_id: string; concepto: string; monto: number; fecha: string; forma_pago: FormaPago;
   estado: 'vigente' | 'anulado'; nota: string | null; anulacion_motivo: string | null; gasto_fijo_id: string | null;
-  creado_en: string; usuarios: { nombre: string } | null;
+  creado_en: string; usuarios: { nombre: string } | null; pagado_por: string | null;
 }
 export interface Empleado { id: string; nombre: string; puesto: string | null; sueldo: number; periodicidad: 'semanal' | 'quincenal' | 'mensual' }
-export interface GastoFijo { id: string; categoria_id: string; concepto: string; monto: number; dia: number; forma_pago: FormaPago; desde: string }
+export interface GastoFijo { id: string; categoria_id: string; concepto: string; monto: number; dia: number; forma_pago: FormaPago; desde: string; pagado_por: string | null }
 
 const ZONA = 'America/Mexico_City';
 // Fecha de hoy (AAAA-MM-DD) en la Ciudad de México.

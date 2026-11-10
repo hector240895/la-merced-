@@ -96,6 +96,17 @@ const fila = (page, texto) => page.locator('.row').filter({ has: page.locator('b
     await fila(hector, 'Sueldo de Pedro · Semana 1').getByText('$750').waitFor();
   });
 
+  await comprobar('Un dueño anota un gasto que pagó el otro', async () => {
+    await hector.getByRole('button', { name: 'Registrar gasto' }).click();
+    await hector.getByLabel('Categoría', { exact: true }).selectOption({ label: 'Gas' });
+    await hector.getByLabel('¿En qué se gastó?').fill('Tanque de gas');
+    await hector.getByLabel('Monto $').fill('300');
+    await hector.getByLabel('¿Quién lo pagó?').selectOption({ label: 'Wendy Rivas' });
+    await hector.getByRole('button', { name: 'Guardar gasto' }).click();
+    await hector.getByText('Gasto de $300 registrado').waitFor();
+    await fila(hector, 'Tanque de gas').getByText(/pagó Wendy Rivas/).waitFor();
+  });
+
   const laura = await sesion(navegador, 'laura', CLAVES.laura);
   await laura.getByRole('button', { name: 'Caja y corte' }).click();
   await laura.getByLabel('Fondo inicial').fill('1000');
@@ -133,11 +144,18 @@ const fila = (page, texto) => page.locator('.row').filter({ has: page.locator('b
 
   await comprobar('El reporte muestra ventas, gastos y la utilidad real', async () => {
     await hector.getByRole('button', { name: 'Reportes', exact: true }).click();
-    await hector.locator('.kpi', { hasText: 'Gastos' }).getByText('$10,750').waitFor();
-    await hector.locator('.kpi', { hasText: 'Utilidad real' }).getByText('-$10,750').waitFor();
+    await hector.locator('.kpi', { hasText: 'Gastos' }).getByText('$11,050').waitFor();
+    await hector.locator('.kpi', { hasText: 'Utilidad real' }).getByText('-$11,050').waitFor();
     await hector.locator('.fila-barra', { hasText: 'Renta' }).getByText('$8,000').waitFor();
     await hector.locator('.fila-barra', { hasText: 'Sueldos' }).getByText('$2,750').waitFor();
     await captura(hector, '62-reportes');
+  });
+
+  await comprobar('El reporte separa los gastos de cada dueño', async () => {
+    await hector.locator('.dueno', { hasText: 'Wendy Rivas' }).getByText('$300').first().waitFor();
+    await hector.locator('.dueno', { hasText: 'Hector Navarro' }).getByText('$10,750').first().waitFor();
+    await hector.locator('.dueno', { hasText: 'Hector Navarro' }).locator('.r', { hasText: 'Renta' }).getByText('$8,000').waitFor();
+    await hector.locator('.box', { hasText: 'Gastos por dueño' }).screenshot({ path: `${CAPTURAS}/63-gastos-por-dueno.png` });
   });
 
   await comprobar('Exportar a Excel descarga el archivo', async () => {

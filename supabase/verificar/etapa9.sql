@@ -2,14 +2,14 @@
 -- Solo lee: no cambia nada. Cada fila debe decir ✅.
 with funciones(n) as (values ('registrar_gasto'), ('anular_gasto'), ('registrar_compra'), ('guardar_categoria_gasto'),
   ('eliminar_categoria_gasto'), ('guardar_gasto_fijo'), ('eliminar_gasto_fijo'), ('generar_gastos_fijos'),
-  ('guardar_empleado'), ('eliminar_empleado'), ('pagar_sueldos'), ('reporte_finanzas')),
+  ('guardar_empleado'), ('eliminar_empleado'), ('pagar_sueldos'), ('reporte_finanzas'), ('gastos_por_dueno')),
 revisiones(orden, revision, correcto, detalle) as (
   select 1, 'Migraciones de finanzas aplicadas',
-         (select count(*) from supabase_migrations.schema_migrations where version in ('20261118000100', '20261118000200', '20261118000300')) = 3, ''
+         (select count(*) from supabase_migrations.schema_migrations where version in ('20261118000100', '20261118000200', '20261118000300', '20261119000100')) = 4, ''
   union all
   select 2, 'Funciones de finanzas',
-         (select count(*) from funciones f where exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = f.n)) = 12,
-         (select count(*) from funciones f where exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = f.n)) || ' de 12'
+         (select count(*) from funciones f where exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = f.n)) = 13,
+         (select count(*) from funciones f where exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = f.n)) || ' de 13'
   union all
   select 3, 'Categorías de gasto', (select count(*) from public.categorias_gasto where clave is not null) = 14,
          (select count(*) from public.categorias_gasto where eliminado_en is null) || ' categorías'

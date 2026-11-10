@@ -6,6 +6,8 @@ import { FORMA_PAGO, PERIODOS, descargarCsv, fechaCorta, fechaLarga, hoy, rango,
 
 // Reporte de utilidad real (ventas − todos los gastos) y de ventas.
 
+interface Dueno { quien: string; total: number; n: number; detalle: { categoria: string; monto: number }[] }
+
 interface Reporte {
   desde: string; hasta: string;
   ventas: { efectivo: number; tarjeta: number; transferencia: number; cobrado: number; devoluciones: number; netas: number; cuentas: number; ticket_promedio: number };
@@ -42,12 +44,19 @@ export default function Reportes() {
   const [periodo, setPeriodo] = useState<Periodo>('mes');
   const [fechas, setFechas] = useState<[string, string]>([hoy(), hoy()]);
   const [r, setR] = useState<Reporte | null>(null);
+  const [duenos, setDuenos] = useState<Dueno[]>([]);
   const [error, setError] = useState('');
   const [todosProductos, setTodosProductos] = useState(false);
   const [desde, hasta] = rango(periodo, fechas[0], fechas[1]);
 
   const cargar = useCallback(async () => {
-    try { setR(await llamar<Reporte>('reporte_finanzas', { p_desde: desde, p_hasta: hasta })); setError(''); }
+    try {
+      const [rep, por] = await Promise.all([
+        llamar<Reporte>('reporte_finanzas', { p_desde: desde, p_hasta: hasta }),
+        llamar<Dueno[]>('gastos_por_dueno', { p_desde: desde, p_hasta: hasta }),
+      ]);
+      setR(rep); setDuenos(por); setError('');
+    }
     catch (e) { setError(mensajeDe(e)); }
   }, [desde, hasta]);
   useEffect(() => { cargar(); }, [cargar]);
@@ -62,6 +71,7 @@ export default function Reportes() {
       ['Ventas por forma de pago'], ['Efectivo', r.ventas.efectivo], ['Tarjeta', r.ventas.tarjeta], ['Transferencia', r.ventas.transferencia],
       ['Devoluciones', -r.ventas.devoluciones], ['Propinas (de los meseros, no cuentan como venta)', r.propinas.total], [],
       ['Gastos por categoría', 'Total', 'Número'], ...r.gastos.por_categoria.map((c) => [c.nombre, c.total, c.n]), [],
+      ['Gastos por dueño', 'Total', 'Número'], ...duenos.map((d) => [d.quien, d.total, d.n]), [],
       ['Detalle de gastos'], ['Fecha', 'Categoría', 'Concepto', 'Monto', 'Forma de pago', 'Registró'],
       ...r.gastos_lista.map((g) => [g.fecha, g.categoria, g.concepto, g.monto, FORMA_PAGO[g.forma_pago], g.quien ?? 'Automático']), [],
       ['Por día', 'Ventas', 'Gastos', 'Cuentas'], ...r.por_dia.map((d) => [d.fecha, d.ventas, d.gastos, d.cuentas]), [],
@@ -133,6 +143,26 @@ export default function Reportes() {
                 </div>
               ))}
               {r.gastos.por_categoria.length > 0 && <p className="tot"><span>Gastos</span><span>{dinero(r.gastos.total)}</span></p>}
+            </div>
+          </div>
+
+          <div className="box">
+            <h2>Gastos por dueño</h2>
+            <p className="hint">Quién pagó cada gasto: cada dueño de su bolsa o la caja con su efectivo.</p>
+            {duenos.length === 0 && <p className="vacio">Sin gastos en el periodo.</p>}
+            <div className="duenos">
+              {duenos.map((d) => {
+                const porCat = Object.entries(d.detalle.reduce<Record<string, number>>((a, x) => {
+                  a[x.categoria] = (a[x.categoria] ?? 0) + Number(x.monto); return a;
+                }, {})).sort((a, b) => b[1] - a[1]);
+                return (
+                  <div className="dueno" key={d.quien}>
+                    <p className="tot" style={{ marginTop: 0 }}><span>{d.quien}</span><span>{dinero(d.total)}</span></p>
+                    <small>{d.n} {d.n === 1 ? 'gasto' : 'gastos'}{Number(r.gastos.total) > 0 ? ` · ${Math.round((Number(d.total) * 100) / Number(r.gastos.total))}% del total` : ''}</small>
+                    {porCat.map(([cat, monto]) => <p className="r" key={cat}><span>{cat}</span><span>{dinero(monto)}</span></p>)}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
