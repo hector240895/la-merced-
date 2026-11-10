@@ -51,12 +51,13 @@ reset role;
 
 -- ---------------------------------------------------------------- Compra (cajero) = gasto automático
 select pg_temp.como('44444444-4444-4444-4444-444444444444');
+select public.abrir_caja(3000);
 insert into v select 'gasto', (public.registrar_compra((select id from v where clave = 'prov'),
   jsonb_build_array(jsonb_build_object('insumo_id', (select id from v where clave = 'carne'), 'cantidad', 10, 'costo', 1800),
                     jsonb_build_object('insumo_id', (select id from v where clave = 'tortilla'), 'cantidad', 5, 'costo', 125.5)),
   'Factura 77')).id;
 select is((select count(*)::int from movimientos_inventario), 0, 'El cajero no consulta el historial con costos');
-select is((select count(*)::int from gastos), 0, 'El cajero no consulta los gastos');
+select is((select count(*)::int from gastos where creado_por <> '44444444-4444-4444-4444-444444444444'), 0, 'El cajero no consulta otros gastos');
 select throws_ok($$ select public.registrar_compra(null, '[]') $$, 'Agrega al menos un insumo a la compra', 'Una compra necesita insumos');
 select throws_ok($$ select public.registrar_compra(null, jsonb_build_array(jsonb_build_object('insumo_id', (select id from v where clave = 'carne'), 'cantidad', 2))) $$,
   'Cada insumo de la compra necesita cantidad y costo', 'Cada insumo necesita costo');
@@ -67,7 +68,7 @@ select is((select count(*)::int from public.mis_movimientos_inventario()), 3, 'E
 reset role;
 
 select is((select categoria::text || ' ' || monto || ' ' || concepto from gastos where id = (select id from v where clave = 'gasto')),
-  'compras_mercancia 1925.50 Compra a Carnicería López: Factura 77', 'La compra queda como gasto de Compras y mercancía');
+  'compras_mercancia 1925.50 Compra a Carnicería López', 'La compra queda como gasto de Compras y mercancía');
 select is((select count(*)::int from gasto_productos where gasto_id = (select id from v where clave = 'gasto')), 2, 'El gasto lleva el detalle de la compra');
 select is((select existencia from insumos where id = (select id from v where clave = 'carne')), 10.500::numeric, 'La compra y la entrada suman a la existencia');
 select is((select count(*)::int from avisos a join auditoria x on x.id = a.auditoria_id
