@@ -67,7 +67,7 @@ export default function Salon({ yo, salir, dentroDePanel = false }: { yo: Yo; sa
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
-  useEnVivo(['mesas', 'cuentas', 'lineas_cuenta', 'trabajos_impresion'], cargar);
+  useEnVivo(['mesas', 'cuentas', 'lineas_cuenta', 'trabajos_impresion', 'productos', 'categorias'], cargar);
 
   const grupos = useMemo<Grupo[]>(() => mesas.filter((m) => !m.unida_a).map((principal) => {
     const miembros = [principal, ...mesas.filter((m) => m.unida_a === principal.id)];

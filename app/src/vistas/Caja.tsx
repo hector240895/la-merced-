@@ -82,7 +82,7 @@ export default function Caja({ yo }: { yo: Yo }) {
     setProductos((p.data ?? []) as Producto[]);
   }, [aviso]);
   useEffect(() => { cargar(); }, [cargar]);
-  useEnVivo(['cuentas', 'lineas_cuenta', 'cobros_extra', 'mesas', 'turnos_caja', 'pagos', 'movimientos_efectivo', 'trabajos_impresion'], cargar);
+  useEnVivo(['cuentas', 'lineas_cuenta', 'cobros_extra', 'mesas', 'turnos_caja', 'pagos', 'movimientos_efectivo', 'trabajos_impresion', 'productos', 'categorias'], cargar);
 
   async function accion(fn: () => Promise<unknown>, exito?: string) {
     setOcupado(true);

@@ -188,7 +188,15 @@ export default function Pedido({ destino, categorias, productos, precio, borrado
                 <div><h3>{p.nombre}</h3>{p.descripcion && <p>{p.descripcion}</p>}</div>
                 <span className="pr">{dinero(p.precio)}</span>
               </div>
-              {agotado ? <p className="note">Agotado</p> : (
+              {agotado ? (
+                <div className="rc">
+                  <span className="chip r">Agotado</span>
+                  <button className="obs" disabled={ocupado}
+                          onClick={() => accion(() => llamar('marcar_agotado', { p_id: p.id, p_agotado: false }), `${p.nombre} ya está disponible`)}>
+                    Marcar disponible
+                  </button>
+                </div>
+              ) : (
                 <>
                   {mias.map((x, n) => (
                     <div key={x.id} className="pieza">
@@ -242,6 +250,16 @@ export default function Pedido({ destino, categorias, productos, precio, borrado
                     </div>
                   )}
                 </>
+              )}
+              {!agotado && (
+                <button className="agotar" disabled={ocupado} aria-label={`Marcar agotado ${p.nombre}`}
+                        onClick={() => {
+                          if (confirm(`¿Marcar "${p.nombre}" como agotado? Nadie podrá pedirlo hasta marcarlo disponible.`)) {
+                            accion(() => llamar('marcar_agotado', { p_id: p.id, p_agotado: true }), `${p.nombre} quedó agotado`);
+                          }
+                        }}>
+                  Se acabó
+                </button>
               )}
             </div>
           );

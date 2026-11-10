@@ -9,8 +9,9 @@ import Autorizaciones from './propietario/Autorizaciones';
 import Comandas from './Comandas';
 import Caja from './Caja';
 import CortesVentas from './propietario/CortesVentas';
+import Catalogo from './propietario/Catalogo';
 
-type Pestana = 'salon' | 'caja' | 'cortes' | 'comandas' | 'mesas' | 'usuarios' | 'autorizaciones';
+type Pestana = 'salon' | 'caja' | 'cortes' | 'comandas' | 'catalogo' | 'mesas' | 'usuarios' | 'autorizaciones';
 const CLAVE_PESTANA = 'la-merced-pestana';
 
 export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }) {
@@ -42,7 +43,7 @@ export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }
   useEnVivo(['autorizaciones', 'avisos'], contar);
 
   const pestanas: [Pestana, string][] = [
-    ['salon', 'Salón'], ['caja', 'Caja'], ['cortes', 'Cortes y ventas'], ['comandas', 'Comandas'], ['mesas', 'Mesas'], ['usuarios', 'Usuarios'], ['autorizaciones', 'Autorizaciones y avisos'],
+    ['salon', 'Salón'], ['caja', 'Caja'], ['cortes', 'Cortes y ventas'], ['comandas', 'Comandas'], ['catalogo', 'Catálogo'], ['mesas', 'Mesas'], ['usuarios', 'Usuarios'], ['autorizaciones', 'Autorizaciones y avisos'],
   ];
 
   return (
@@ -63,6 +64,7 @@ export default function Propietario({ yo, salir }: { yo: Yo; salir: () => void }
       {pestana === 'caja' && <Caja yo={yo} />}
       {pestana === 'cortes' && <main className="ancho"><CortesVentas /></main>}
       {pestana === 'comandas' && <main className="ancho"><Comandas /></main>}
+      {pestana === 'catalogo' && <main className="ancho"><Catalogo /></main>}
       {pestana === 'mesas' && <main className="ancho"><MesasAdmin /></main>}
       {pestana === 'usuarios' && <main className="ancho"><Usuarios yo={yo} /></main>}
       {pestana === 'autorizaciones' && <main className="ancho"><Autorizaciones yo={yo} alCambiar={contar} /></main>}
