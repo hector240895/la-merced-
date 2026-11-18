@@ -59,21 +59,33 @@ test('comanda para llevar dice el número de pedido', () => {
   assert.match(t, /Pedido #12/);
 });
 
-test('ticket de 58 mm: solo total, recibido y cambio; sin cortar', () => {
+test('ticket de 58 mm al estilo de tienda; sin cortar', () => {
   const bytes = ticket({
-    documento: 'ticket', negocio: 'Cenaduría La Merced', leyenda: '¡Gracias por su visita!', folio: 3, para_llevar: false,
-    fecha: '08/11/2026', hora: '22:10', total: 100, recibido: 200, cambio: 100,
-    lineas: [{ cantidad: 2, producto: 'Café de olla', opcion: null, precio_unitario: 30, importe: 60 }],
-    extras: [{ concepto: 'Salsa extra para llevar', importe: 40 }],
+    documento: 'ticket', negocio: 'Cenaduría La Merced', direccion: 'Av. Fundición 2103, San Cayetano, 20010 Aguascalientes, Ags.',
+    telefonos: '449 940 44 90 / 449 181 31 21', leyenda: '¡Gracias por su visita!', folio: 3, para_llevar: false, destino: 'Mesa 4',
+    fecha: '08/11/2026', hora: '10:10:05 PM', total: 1276, recibido: 1300, cambio: 24, total_letra: 'MIL DOSCIENTOS SETENTA Y SEIS PESOS 00/100 M.N.',
+    lineas: [{ cantidad: 2, producto: 'Café de olla', opcion: null, precio_unitario: 30, importe: 60 },
+             { cantidad: 4, producto: 'Plato Aguascalientes con enchiladas y pozole', importe: 1176 }],
+    extras: [{ concepto: 'Salsa extra', importe: 40 }],
   }, { ancho: 32 });
   const t = leer(bytes);
-  assert.match(t, /Cenaduría La Merced/);
-  assert.match(t, /2 Café de olla\s+\$60/);
-  assert.match(t, /TOTAL\s+\$100/);
-  assert.match(t, /Recibido\s+\$200/);
-  assert.match(t, /Cambio\s+\$100/);
-  assert.match(t, /¡Gracias por su visita!/);
-  assert.doesNotMatch(t, /Propina|Tarjeta|Efectivo|Mesero/);
+  assert.match(t, /CENADURÍA LA MERCED/);
+  assert.match(t, /AV\. FUNDICIÓN 2103/);
+  assert.match(t, /TEL\. 449 940 44 90/);
+  assert.match(t, /FOLIO NO\. 3/);
+  assert.match(t, /08\/11\/2026 10:10:05 PM/);
+  assert.match(t, /MESA 4/);
+  assert.match(t, /CANT DESCRIPCION\s+IMPORTE/);
+  assert.match(t, /2  CAFÉ DE OLLA\s+\$60\.00/);
+  assert.match(t, /4  PLATO\b.*\$1,176\.00/);
+  assert.match(t, /1  EXTRA: SALSA EXTRA\s+\$40\.00/);
+  assert.match(t, /TOTAL: \$1,276\.00/);
+  assert.match(t, /RECIBIDO: \$1,300\.00/);
+  assert.match(t, /CAMBIO: \$24\.00/);
+  assert.match(t, /SON: MIL DOSCIENTOS SETENTA Y\s+SEIS/);
+  assert.match(t, /¡GRACIAS POR SU VISITA!/);
+  assert.match(t, /ESTE NO ES UN COMPROBANTE FISCAL/);
+  assert.doesNotMatch(t, /SUCURSAL|Propina|Tarjeta|Mesero/i);
   for (const r of t.split('\n')) assert.ok(r.length <= 32, `renglón demasiado largo: "${r}"`);
   assert.notDeepEqual([...bytes.slice(-4)], [0x1d, 0x56, 0x42, 0x00], 'la impresora de caja corta a mano');
 });
@@ -116,7 +128,7 @@ test('ticket en CP1252 conserva los acentos', () => {
   const t = leer(ticket({ negocio: 'Cenaduría La Merced', leyenda: '¡Gracias por su visita!', folio: 1, fecha: '10/11/2026', hora: '20:00',
     total: 45, recibido: null, cambio: null, lineas: [{ cantidad: 1, producto: 'Champiñones', importe: 45 }], extras: [] },
     { ancho: 32, tabla: 'cp1252' }), 'cp1252');
-  assert.match(t, /Cenaduría La Merced/);
-  assert.match(t, /1 Champiñones\s+\$45/);
-  assert.match(t, /¡Gracias por su visita!/);
+  assert.match(t, /CENADURÍA LA MERCED/);
+  assert.match(t, /1  CHAMPIÑONES\s+\$45\.00/);
+  assert.match(t, /¡GRACIAS POR SU VISITA!/);
 });

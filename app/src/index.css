@@ -234,3 +234,9 @@ h3.sub { font: 600 14px Figtree, sans-serif; color: var(--mute); margin: 14px 0 
 .duenos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 .dueno { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; }
 .dueno > small { display: block; color: var(--mute); margin-bottom: 6px; }
+.tienda { font-family: ui-monospace, 'Courier New', monospace; font-size: 12px; }
+.tienda hr { border-top-style: dashed; }
+.t-fila { display: grid; grid-template-columns: 26px 1fr auto; gap: 6px; text-align: left; margin: 2px 0; }
+.t-fila > span:last-child { text-align: right; }
+.t-cab { font-weight: 700; }
+.t-der { text-align: right !important; }

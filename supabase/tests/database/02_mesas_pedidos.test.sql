@@ -88,8 +88,7 @@ select is((select cantidad from lineas_cuenta where producto_id = (select pozole
   'Queda un pozole en la cuenta');
 select is((select observacion from lineas_cuenta where producto_id = (select pozole from ids) and estado = 'activa'), 'Sin lechuga',
   'Lo que queda conserva la observación');
-select is((select cl.leyenda || ' ' || cl.cantidad from comanda_lineas cl join comandas c on c.id = cl.comanda_id
-           where c.tipo = 'cancelacion'), 'CANCELADO 1', 'Cocina recibe CANCELADO por la cantidad quitada');
+select is((select count(*)::int from comandas c where c.tipo = 'cancelacion'), 0, 'Quitar un producto ya no imprime aviso de cancelación');
 select is((select cancelacion_motivo from lineas_cuenta where producto_id = (select pozole from ids) and estado = 'cancelada'),
   'Uno no se llevó al cliente', 'El motivo queda registrado');
 

@@ -1,6 +1,6 @@
 // Cómo se ve en papel cada documento: comanda (cocina, 80 mm), ticket y
 // corte (caja, 58 mm). Reciben el "contenido" que arma la base de datos.
-import { Documento } from './escpos.mjs';
+import { Documento, partir } from './escpos.mjs';
 
 const dinero = (n) => '$' + Number(n ?? 0).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
@@ -28,25 +28,54 @@ export function comanda(c, opciones) {
   return d.terminar();
 }
 
+const pesos = (n) => '$' + Number(n ?? 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const mayus = (t) => String(t ?? '').toLocaleUpperCase('es-MX');
+
+// Ticket de cobro, al estilo de ticket de tienda: datos del negocio, folio,
+// fecha y hora, mesa, tabla CANT / DESCRIPCION / IMPORTE, total, importe con
+// letra y "Este no es un comprobante fiscal".
 export function ticket(t, opciones) {
   const d = new Documento({ cortar: false, ...opciones });
+  const anchoCant = 3;
+  // Cantidad, descripción (se parte si no cabe) e importe pegado a la derecha.
+  const fila = (cant, desc, imp) => {
+    const anchoDesc = d.ancho - anchoCant - imp.length - 1;
+    const renglones = partir(mayus(desc), anchoDesc);
+    renglones.forEach((r, i) => d.linea(i === 0
+      ? String(cant).padEnd(anchoCant) + r.padEnd(anchoDesc) + ' ' + imp
+      : ' '.repeat(anchoCant) + r));
+  };
+
   d.alinear('centro');
   if (t.reimpresion) d.linea('*** REIMPRESIÓN ***');
-  d.negrita(true).parrafo(t.negocio).negrita(false);
-  d.separador();
-  d.linea(`${t.fecha} ${t.hora}  Folio ${t.folio}`);
-  if (t.para_llevar) d.linea('Para llevar');
-  d.separador().alinear('izquierda');
-  for (const l of t.lineas ?? []) {
-    d.dosColumnas(`${l.cantidad} ${l.producto}`, dinero(l.importe));
-    if (l.opcion) d.parrafo(l.opcion, d.ancho, '  ');
-  }
-  for (const x of t.extras ?? []) d.dosColumnas(`Extra: ${x.concepto}`, dinero(x.importe));
-  d.separador();
-  d.negrita(true).tamano('alto').dosColumnas('TOTAL', dinero(t.total)).tamano(1).negrita(false);
-  if (t.recibido != null) d.dosColumnas('Recibido', dinero(t.recibido));
-  if (t.cambio != null) d.dosColumnas('Cambio', dinero(t.cambio));
-  if (t.leyenda) d.linea().alinear('centro').parrafo(t.leyenda);
+  d.negrita(true).parrafo(mayus(t.negocio)).negrita(false);
+  if (t.direccion) d.parrafo(mayus(t.direccion));
+  // Cada teléfono en su renglón para que no se corte a la mitad.
+  String(t.telefonos ?? '').split('/').map((x) => x.trim()).filter(Boolean)
+    .forEach((tel, i) => d.linea(`${i === 0 ? 'TEL. ' : ''}${tel}`));
+  d.separador('=');
+  d.negrita(true).linea(`FOLIO NO. ${t.folio}`).negrita(false);
+  d.linea(`${t.fecha} ${t.hora}`);
+  const destino = t.destino ?? (t.para_llevar ? 'Para llevar' : null);
+  if (destino) d.negrita(true).parrafo(mayus(destino)).negrita(false);
+  d.separador('=');
+
+  d.alinear('izquierda');
+  d.dosColumnas('CANT DESCRIPCION', 'IMPORTE');
+  for (const l of t.lineas ?? []) fila(l.cantidad, l.producto, pesos(l.importe));
+  for (const x of t.extras ?? []) fila(1, `Extra: ${x.concepto}`, pesos(x.importe));
+  d.linea();
+
+  d.alinear('derecha');
+  d.negrita(true).tamano('alto').linea(`TOTAL: ${pesos(t.total)}`).tamano(1).negrita(false);
+  if (t.recibido != null) d.linea(`RECIBIDO: ${pesos(t.recibido)}`);
+  if (t.cambio != null) d.linea(`CAMBIO: ${pesos(t.cambio)}`);
+
+  d.alinear('centro');
+  if (t.total_letra) d.linea().parrafo(`SON: ${t.total_letra}`);
+  d.linea();
+  if (t.leyenda) d.negrita(true).parrafo(mayus(t.leyenda)).negrita(false);
+  d.parrafo('ESTE NO ES UN COMPROBANTE FISCAL');
   return d.terminar();
 }
 

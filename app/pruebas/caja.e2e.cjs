@@ -109,19 +109,24 @@ const cuenta = (page, texto) => page.locator('.acc', { hasText: texto });
     await captura(laura, '21-caja-cobro');
     await laura.getByRole('button', { name: 'Cobrar e imprimir ticket' }).click();
   });
-  await comprobar('Sale el ticket simple: negocio, fecha, folio, productos, total, recibido y cambio', async () => {
+  await comprobar('Sale el ticket estilo tienda: datos del negocio, folio, productos, total con letra y cambio', async () => {
     const papel = laura.locator('.papel');
     await laura.locator('.cambio-grande', { hasText: 'Cambio: $30' }).waitFor();
-    await papel.getByText('Cenaduría La Merced').waitFor();
-    await papel.getByText('Para llevar', { exact: true }).waitFor();
+    await papel.getByText('CENADURÍA LA MERCED').waitFor();
+    await papel.getByText(/AV\. FUNDICIÓN 2103/).waitFor();
+    await papel.getByText(/TEL\. 449/).waitFor();
+    await papel.getByText(/FOLIO NO\. \d+/).waitFor();
+    await papel.getByText('PARA LLEVAR', { exact: true }).waitFor();
+    await papel.getByText('TOTAL: $100.00').waitFor();
+    await papel.getByText('RECIBIDO: $100.00').waitFor();
+    await papel.getByText('CAMBIO: $30.00').waitFor();
+    await papel.getByText('SON: CIEN PESOS 00/100 M.N.').waitFor();
+    await papel.getByText('ESTE NO ES UN COMPROBANTE FISCAL').waitFor();
+    await papel.getByText('EXTRA: SALSA EXTRA PARA LLEVAR').waitFor();
     const texto = await papel.innerText();
-    await papel.locator('.t-linea', { hasText: 'Recibido' }).getByText('$100').waitFor();
-    await papel.locator('.t-linea', { hasText: 'Cambio' }).getByText('$30').waitFor();
-    for (const fuera of ['Fundición', '449', 'Mesero', 'Le atendió', 'Propina', 'Tarjeta', 'Efectivo']) {
-      if (texto.includes(fuera)) throw new Error(`El ticket todavía muestra "${fuera}"`);
+    for (const fuera of ['SUCURSAL', 'Mesero', 'Propina', 'Tarjeta']) {
+      if (texto.includes(fuera)) throw new Error(`El ticket muestra "${fuera}"`);
     }
-    await papel.locator('.t-total', { hasText: '$100' }).waitFor();
-    await papel.getByText('Extra: Salsa extra para llevar').waitFor();
     await captura(laura, '22-ticket');
     await laura.getByRole('button', { name: 'Cerrar' }).click();
     await cuenta(laura, 'Para llevar #1').getByText('Cobrada').waitFor();

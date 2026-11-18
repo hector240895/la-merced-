@@ -82,6 +82,7 @@ export interface ContenidoTicket {
   extras: { concepto: string; importe: number }[];
   total: number; recibido: number | null; cambio: number | null;
   reimpresion?: boolean; reimprimio?: string;
+  direccion?: string | null; telefonos?: string | null; destino?: string | null; total_letra?: string | null;
 }
 export interface Resumen {
   fondo_inicial: number; ventas_efectivo: number; ventas_tarjeta: number; ventas_transferencia: number; ventas_total: number;

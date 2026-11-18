@@ -1,5 +1,8 @@
 import { dinero, type ContenidoTicket, type Resumen } from '../lib/tipos';
 
+const pesos = (n: number) => '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const mayus = (t: string | null | undefined) => String(t ?? '').toLocaleUpperCase('es-MX');
+
 // Vista previa del ticket tal como sale en la impresora de caja (58 mm).
 export function VistaTicket({ t, cambio, cerrar }: { t: ContenidoTicket; cambio?: number; cerrar: () => void }) {
   return (
@@ -8,25 +11,29 @@ export function VistaTicket({ t, cambio, cerrar }: { t: ContenidoTicket; cambio?
         {cambio !== undefined && cambio > 0 && <p className="cambio-grande">Cambio: {dinero(cambio)}</p>}
         <div className="papel angosto">
           {t.reimpresion && <p className="p-marca">REIMPRESIÓN{t.reimprimio ? ` · ${t.reimprimio}` : ''}</p>}
-          <p className="p-titulo">{t.negocio}</p>
-          <hr />
-          <p className="p-meta">{t.fecha} {t.hora} · Folio {t.folio}</p>
-          {t.para_llevar && <p className="p-meta">Para llevar</p>}
-          <hr />
-          {t.lineas.map((l, i) => (
-            <div key={i} className="t-linea">
-              <span>{l.cantidad} {l.producto}{l.opcion && <small>{l.opcion}</small>}</span>
-              <span>{dinero(l.importe)}</span>
-            </div>
-          ))}
-          {t.extras.map((x, i) => (
-            <div key={`x${i}`} className="t-linea"><span>Extra: {x.concepto}</span><span>{dinero(x.importe)}</span></div>
-          ))}
-          <hr />
-          <div className="t-linea t-total"><span>TOTAL</span><span>{dinero(t.total)}</span></div>
-          {t.recibido != null && <div className="t-linea"><span>Recibido</span><span>{dinero(t.recibido)}</span></div>}
-          {t.cambio != null && <div className="t-linea"><span>Cambio</span><span>{dinero(t.cambio)}</span></div>}
-          {t.leyenda && <p className="p-titulo" style={{ marginTop: 8 }}>{t.leyenda}</p>}
+          <div className="tienda">
+            <p className="p-titulo">{mayus(t.negocio)}</p>
+            {t.direccion && <p>{mayus(t.direccion)}</p>}
+            {t.telefonos && <p>TEL. {t.telefonos}</p>}
+            <hr />
+            <p className="p-titulo">FOLIO NO. {t.folio}</p>
+            <p>{t.fecha} {t.hora}</p>
+            {(t.destino ?? (t.para_llevar ? 'Para llevar' : null)) && <p className="p-titulo">{mayus(t.destino ?? 'Para llevar')}</p>}
+            <hr />
+            <div className="t-fila t-cab"><span>CANT</span><span>DESCRIPCION</span><span>IMPORTE</span></div>
+            {t.lineas.map((l, i) => (
+              <div key={i} className="t-fila"><span>{l.cantidad}</span><span>{mayus(l.producto)}</span><span>{pesos(l.importe)}</span></div>
+            ))}
+            {t.extras.map((x, i) => (
+              <div key={`x${i}`} className="t-fila"><span>1</span><span>EXTRA: {mayus(x.concepto)}</span><span>{pesos(x.importe)}</span></div>
+            ))}
+            <p className="t-der t-total" style={{ marginTop: 10 }}>TOTAL: {pesos(t.total)}</p>
+            {t.recibido != null && <p className="t-der">RECIBIDO: {pesos(t.recibido)}</p>}
+            {t.cambio != null && <p className="t-der">CAMBIO: {pesos(t.cambio)}</p>}
+            {t.total_letra && <p style={{ marginTop: 8 }}>SON: {t.total_letra}</p>}
+            {t.leyenda && <p className="p-titulo" style={{ marginTop: 8 }}>{mayus(t.leyenda)}</p>}
+            <p>ESTE NO ES UN COMPROBANTE FISCAL</p>
+          </div>
         </div>
         <button className="sec" style={{ background: 'var(--card)' }} onClick={cerrar}>Cerrar</button>
       </div>

@@ -72,9 +72,8 @@ select public.quitar_producto((select id from lineas_cuenta where producto_id = 
 reset role;
 set constraints comandas_imprimir immediate;
 set constraints comandas_imprimir deferred;
-select is((select contenido -> 'lineas' -> 0 ->> 'leyenda' || ' ' || (contenido -> 'lineas' -> 0 ->> 'cantidad')
-           from trabajos_impresion where contenido ->> 'tipo' = 'cancelacion'), 'CANCELADO 1',
-  'Quitar un producto encola el aviso CANCELADO con la cantidad');
+select is((select count(*)::int from trabajos_impresion where contenido ->> 'tipo' = 'cancelacion'), 0,
+  'Quitar un producto no imprime aviso de cancelación en cocina');
 
 -- ---------------------------------------------------------------- Sin precios, garantizado
 select throws_ok($$ insert into trabajos_impresion (documento, impresora, comanda_id, contenido)
@@ -86,7 +85,7 @@ select throws_ok($$ insert into trabajos_impresion (documento, impresora, comand
 select pg_temp.como('33333333-3333-3333-3333-333333333333');
 select throws_ok($$ select public.reportar_impresion((select id from trabajos_impresion where contenido ->> 'tipo' = 'nueva'), true) $$,
   '42501', null, 'El mesero no puede marcar comandas como impresas');
-select is((select count(*)::int from trabajos_impresion), 3, 'El mesero ve el estado de las comandas de sus mesas');
+select is((select count(*)::int from trabajos_impresion), 2, 'El mesero ve el estado de las comandas de sus mesas');
 reset role;
 
 select pg_temp.como('44444444-4444-4444-4444-444444444444');

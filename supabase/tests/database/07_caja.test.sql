@@ -125,10 +125,12 @@ select is((select documento || '/' || impresora from trabajos_impresion
            where cuenta_id = (select valor::uuid from v where clave = 'llevar') and documento = 'ticket'), 'ticket/caja',
   'El cobro manda el ticket a la impresora de caja');
 select ok((select contenido ->> 'negocio' = 'Cenaduría La Merced'
-              and contenido ->> 'fecha' ~ '^\d\d/\d\d/\d{4}$' and contenido ->> 'hora' ~ '^\d\d:\d\d$'
-           from trabajos_impresion where documento = 'ticket'), 'El ticket lleva negocio, fecha y hora');
-select ok((select not (contenido ?| array['direccion', 'telefonos', 'destino', 'mesero', 'cajero'])
-           from trabajos_impresion where documento = 'ticket'), 'El ticket no lleva mesa, mesero, cajero, dirección ni teléfonos');
+              and contenido ->> 'fecha' ~ '^\d\d/\d\d/\d{4}$' and contenido ->> 'hora' ~ '^\d\d:\d\d:\d\d [AP]M$'
+              and contenido ->> 'direccion' like 'Av. Fundición 2103%' and contenido ->> 'telefonos' like '449 %'
+           from trabajos_impresion where documento = 'ticket'), 'El ticket lleva negocio, dirección, teléfonos, fecha y hora');
+select ok((select not (contenido ?| array['mesero', 'cajero']) and contenido ->> 'destino' = 'Para llevar'
+              and contenido ->> 'total_letra' = 'CIEN PESOS 00/100 M.N.'
+           from trabajos_impresion where documento = 'ticket'), 'El ticket lleva para llevar e importe con letra, sin mesero ni cajero');
 select ok((select contenido -> 'lineas' @> '[{"cantidad": 2, "producto": "Café de olla", "precio_unitario": 30.00, "importe": 60.00}]'
               and contenido -> 'extras' @> '[{"concepto": "Salsa extra para llevar", "importe": 40.00}]'
               and (contenido ->> 'total')::numeric = 100

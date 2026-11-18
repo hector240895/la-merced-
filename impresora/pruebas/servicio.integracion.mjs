@@ -104,9 +104,10 @@ await comprobar('El ticket sale en la impresora de caja', async () => {
     p_pagos: [{ metodo: 'efectivo', importe: 75, recibido: 100 }] });
   if (r.error) throw new Error(r.error.message);
   // En caja salen la precuenta (al pedir la cuenta) y el ticket (al cobrar).
-  const f = await esperar(async () => archivos('caja').find((x) => leerArchivo('caja', x).includes('Cambio')));
+  const f = await esperar(async () => archivos('caja').find((x) => leerArchivo('caja', x).includes('CAMBIO')));
   const t = leerArchivo('caja', f);
-  if (!/TOTAL\s+\$75/.test(t) || !/Cambio\s+\$25/.test(t)) throw new Error(t);
+  if (!/TOTAL: \$75\.00/.test(t) || !/CAMBIO: \$25\.00/.test(t) || !/SETENTA Y CINCO PESOS\s+00\/100 M\.N\./.test(t)
+      || !t.includes("MESA 1") || !t.includes("ESTE NO ES UN COMPROBANTE FISCAL")) throw new Error(t.replace(/\n/g, " | "));
   if (!archivos('caja').some((x) => leerArchivo('caja', x).includes('Mesa 1'))) throw new Error('No salió la precuenta');
   if (archivos('cocina').length !== 1) throw new Error('El ticket salió en cocina');
 });
