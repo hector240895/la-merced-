@@ -78,7 +78,7 @@ Revisa también en Supabase → **Authentication → Sign In / Providers** que e
 
 | Qué | Resultado |
 | --- | --- |
-| Base de datos (pgTAP) | 320 de 320 |
+| Base de datos (pgTAP) | 325 de 325 |
 | Servicio de impresión: formatos | 9 de 9 |
 | Servicio de impresión: integración | 10 de 10 |
 | Navegador: salón | 24 de 24 |

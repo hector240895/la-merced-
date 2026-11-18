@@ -1,4 +1,4 @@
-# Ticket estilo tienda y sin aviso de cancelación
+# Ticket estilo tienda, ticket opcional y sin aviso de cancelación
 
 ## Qué cambió
 
@@ -35,6 +35,13 @@ ESTE NO ES UN COMPROBANTE FISCAL
 - Recibido y cambio salen solo cuando se paga en efectivo.
 - La vista previa en la pantalla de caja se ve igual.
 
+**La cuenta** (la que sale con **Pedir la cuenta** o **Imprimir cuenta**) usa el mismo formato, sin recibido ni cambio.
+
+**Al cobrar ya no se imprime el ticket automáticamente.**
+- Caja marca **Imprimir ticket** antes de cobrar si el cliente lo quiere.
+- O lo imprime después desde la cuenta cobrada con **Imprimir ticket**.
+- En pantalla siempre se puede ver con **Ver ticket**.
+
 **Quitar un producto ya enviado a cocina** ya no imprime el aviso "CANCELADO" en cocina. Sigue quedando registrado en la cuenta y en la auditoría, con motivo, quién y cuándo.
 
 ## Cómo subirlo
@@ -44,6 +51,7 @@ ESTE NO ES UN COMPROBANTE FISCAL
    git pull
    npx supabase db push
    ```
+   Incluye `20261120000100_ticket_formato.sql`, `20261121000100_ticket_opcional.sql` y `20261121000200_precuenta_formato.sql`.
 2. **En la computadora de caja**, actualiza el servicio de impresión a la versión **1.2.0**:
    - Descarga otra vez el ZIP.
    - Reemplaza la carpeta `impresora`.
@@ -54,6 +62,6 @@ Sin el paso 2, los tickets se siguen imprimiendo con el formato anterior.
 
 ## Pruebas automáticas
 
-- **Base de datos:** 320 pruebas, incluido el importe con letra.
+- **Base de datos:** 325 pruebas, incluidos el importe con letra y el ticket opcional.
 - **Servicio de impresión:** 9 de formato y 10 de integración.
 - **Navegador:** caja 12/12 y salón 24/24.

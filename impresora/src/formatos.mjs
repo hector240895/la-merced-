@@ -79,24 +79,12 @@ export function ticket(t, opciones) {
   return d.terminar();
 }
 
-// Precuenta: la cuenta antes de cobrar, para llevarla a la mesa.
-// Sin "cuenta informativa" ni "no pagada"; termina con la leyenda de agradecimiento.
+// Precuenta: la cuenta antes de cobrar, para llevarla a la mesa. Mismo formato
+// que el ticket (sin recibido ni cambio, que aún no existen).
 export function precuenta(t, opciones) {
-  const d = new Documento({ cortar: false, ...opciones });
-  d.alinear('centro').negrita(true).parrafo(t.negocio).negrita(false);
-  d.tamano(2).negrita(true).parrafo(t.destino, Math.floor(d.ancho / 2)).negrita(false).tamano(1);
-  d.linea(`Folio ${t.folio}  ${t.fecha} ${t.hora}`);
-  d.separador().alinear('izquierda');
-  for (const l of t.lineas ?? []) {
-    d.dosColumnas(`${l.cantidad} ${l.producto}`, dinero(l.importe));
-    if (l.opcion) d.parrafo(l.opcion, d.ancho, '  ');
-  }
-  for (const x of t.extras ?? []) d.dosColumnas(`Extra: ${x.concepto}`, dinero(x.importe));
-  d.separador();
-  d.negrita(true).tamano('alto').dosColumnas('TOTAL', dinero(t.total)).tamano(1).negrita(false);
-  // La leyenda de agradecimiento (las precuentas anteriores traían "CUENTA NO PAGADA": no se imprime).
-  if (t.leyenda && t.leyenda !== 'CUENTA NO PAGADA') d.linea().alinear('centro').parrafo(t.leyenda);
-  return d.terminar();
+  // Las precuentas anteriores traían "CUENTA NO PAGADA" como leyenda: no se imprime.
+  const leyenda = t.leyenda === 'CUENTA NO PAGADA' ? null : t.leyenda;
+  return ticket({ ...t, leyenda, recibido: null, cambio: null }, opciones);
 }
 
 export function corte(r, opciones) {

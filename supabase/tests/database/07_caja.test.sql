@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(50);
+select plan(55);
 
 create function pg_temp.como(p_id uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true),
@@ -100,7 +100,7 @@ select throws_ok($$ select public.cobrar_cuenta((select valor::uuid from v where
 -- Pago combinado: $60 en efectivo (paga con $100 e incluye $10 de propina) y $40 con tarjeta.
 insert into v select 'cobro', public.cobrar_cuenta((select valor::uuid from v where clave = 'llevar'),
   '[{"metodo": "efectivo", "importe": 60, "recibido": 100}, {"metodo": "tarjeta", "importe": 40}]',
-  (select s_cobro from t), 10, 'efectivo')::text;
+  (select s_cobro from t), 10, 'efectivo', true)::text;
 select is((select (valor::jsonb ->> 'cambio')::numeric from v where clave = 'cobro'), 30.00,
   'Cambio: $100 recibidos − $60 de la cuenta − $10 de propina = $30');
 select is((select estado::text || ' ' || total from cuentas where id = (select valor::uuid from v where clave = 'llevar')),
@@ -158,6 +158,17 @@ reset role;
 select pg_temp.como('44444444-4444-4444-4444-444444444444');
 select lives_ok($$ select public.cobrar_cuenta((select id from cuentas where mesa_id = (select m1 from t)),
   '[{"metodo": "transferencia", "importe": 100}]', gen_random_uuid()) $$, 'La cajera cobra la mesa por transferencia');
+select is((select count(*)::int from trabajos_impresion where documento = 'ticket'
+           and cuenta_id = (select id from cuentas where mesa_id = (select m1 from t))), 0,
+  'Si no se pide, el cobro no imprime ticket');
+select is((public.ver_ticket((select id from cuentas where mesa_id = (select m1 from t))) ->> 'total')::numeric, 100.00,
+  'El ticket se puede ver en pantalla aunque no se haya impreso');
+select is((public.reimprimir_ticket((select id from cuentas where mesa_id = (select m1 from t)))).reimpresion_de, null,
+  'Imprimirlo después sale como ticket normal la primera vez');
+select is(((public.reimprimir_ticket((select id from cuentas where mesa_id = (select m1 from t)))).contenido ->> 'reimpresion')::boolean, true,
+  'La segunda vez sale como REIMPRESIÓN');
+select throws_ok($$ select public.ver_ticket((select id from cuentas where estado = 'abierta' limit 1)) $$,
+  'La cuenta no está cobrada', 'Una cuenta sin cobrar no tiene ticket');
 reset role;
 select ok((select bool_and(estado = 'disponible' and unida_a is null) from mesas where id in ((select m1 from t), (select m2 from t))),
   'Al cobrar, las mesas quedan libres y separadas');

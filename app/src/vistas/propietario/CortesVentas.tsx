@@ -68,10 +68,8 @@ export default function CortesVentas() {
   }
 
   async function verTicket(cuenta: string) {
-    const { data } = await supabase.from('trabajos_impresion').select('contenido').eq('cuenta_id', cuenta).eq('documento', 'ticket')
-      .is('reimpresion_de', null).order('creado_en', { ascending: false }).limit(1).maybeSingle();
-    if (data) setTicket(data.contenido as unknown as ContenidoTicket);
-    else aviso('Esta cuenta no tiene ticket');
+    try { setTicket(await llamar<ContenidoTicket>('ver_ticket', { p_cuenta_id: cuenta })); }
+    catch (e) { aviso(mensajeDe(e)); }
   }
 
   const destino = (c: Cobrada) => (c.tipo === 'llevar' ? 'Para llevar' : mesas[c.mesa_id ?? ''] ?? 'Mesa');

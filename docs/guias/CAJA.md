@@ -12,9 +12,10 @@
    - Efectivo: escribe con cuánto paga en **Efectivo recibido**; el sistema calcula el **cambio**.
    - Puede pagar combinado (parte efectivo, parte tarjeta): **Agregar pago** por cada uno hasta que diga **Cuenta cubierta**.
 4. Si deja **propina**, escríbela y di si fue en efectivo o tarjeta.
-5. **Cobrar e imprimir ticket**. Sale el ticket y en pantalla el cambio en grande.
+5. Toca **Cobrar**. En pantalla sale el cambio en grande y el ticket.
+   - El ticket **no se imprime solo**, porque la cuenta ya se imprimió al pedirla. Si el cliente lo quiere, marca **Imprimir ticket** antes de cobrar; el botón cambia a **Cobrar e imprimir ticket**.
 
-Para reimprimir un ticket: en **Cobradas en esta caja** toca la cuenta → **Ver ticket**.
+¿Lo piden después? En **Cobradas en esta caja** toca la cuenta → **Imprimir ticket**. Si ya se había impreso, sale marcado como reimpresión.
 
 ## Pedidos para llevar
 - **Nuevo pedido para llevar**, arma el pedido y envíalo a cocina. Se cobra igual que una mesa.

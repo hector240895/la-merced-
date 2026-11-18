@@ -101,14 +101,14 @@ await comprobar('El ticket sale en la impresora de caja', async () => {
   await carlos.rpc('pedir_cuenta', { p_mesa_id: await mesa('Mesa 1') });
   await laura.rpc('abrir_caja', { p_fondo: 500 });
   const r = await laura.rpc('cobrar_cuenta', { p_cuenta_id: pedido1.cuenta_id, p_solicitud_id: crypto.randomUUID(),
-    p_pagos: [{ metodo: 'efectivo', importe: 75, recibido: 100 }] });
+    p_pagos: [{ metodo: 'efectivo', importe: 75, recibido: 100 }], p_imprimir_ticket: true });
   if (r.error) throw new Error(r.error.message);
   // En caja salen la precuenta (al pedir la cuenta) y el ticket (al cobrar).
   const f = await esperar(async () => archivos('caja').find((x) => leerArchivo('caja', x).includes('CAMBIO')));
   const t = leerArchivo('caja', f);
   if (!/TOTAL: \$75\.00/.test(t) || !/CAMBIO: \$25\.00/.test(t) || !/SETENTA Y CINCO PESOS\s+00\/100 M\.N\./.test(t)
       || !t.includes("MESA 1") || !t.includes("ESTE NO ES UN COMPROBANTE FISCAL")) throw new Error(t.replace(/\n/g, " | "));
-  if (!archivos('caja').some((x) => leerArchivo('caja', x).includes('Mesa 1'))) throw new Error('No salió la precuenta');
+  if (!archivos('caja').some((x) => !leerArchivo('caja', x).includes('CAMBIO') && leerArchivo('caja', x).includes('MESA 1'))) throw new Error('No salió la precuenta');
   if (archivos('cocina').length !== 1) throw new Error('El ticket salió en cocina');
 });
 
@@ -170,7 +170,8 @@ await comprobar('Al pedir la cuenta, la precuenta sale en la impresora de caja c
   if (r.error) throw new Error(r.error.message);
   await esperar(async () => archivos('caja').length === antes + 1);
   const t = leerArchivo('caja', archivos('caja').slice(-1)[0]);
-  if (!t.includes('Mesa 6') || !/TOTAL\s+\$30/.test(t) || !t.includes('Gracias por su visita') || /INFORMATIVA|NO PAGADA/.test(t)) throw new Error(t);
+  if (!t.includes('MESA 6') || !/TOTAL: \$30\.00/.test(t) || !t.includes('GRACIAS POR SU VISITA') || !/TREINTA PESOS\s+00\/100/.test(t)
+      || !t.includes('ESTE NO ES UN COMPROBANTE FISCAL') || /INFORMATIVA|NO PAGADA|CAMBIO/.test(t)) throw new Error(t.replace(/\n/g, ' | '));
 });
 
 await comprobar('El corte de caja sale en la impresora de caja', async () => {

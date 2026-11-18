@@ -240,6 +240,8 @@ function Detalle({ c, lineasC, extrasC, ticketC, total, abierta, nombre, ocupado
   const [propina, setPropina] = useState('');
   const [propinaMetodo, setPropinaMetodo] = useState<MetodoPago>('tarjeta');
   const [solicitud] = useState(() => crypto.randomUUID());
+  // El ticket solo se imprime si caja lo pide (la precuenta ya se imprimió).
+  const [imprimirTicket, setImprimirTicket] = useState(false);
 
   const cobrada = c.estado === 'cobrada';
   const editable = c.estado === 'abierta' || c.estado === 'por_cobrar';
@@ -268,13 +270,12 @@ function Detalle({ c, lineasC, extrasC, ticketC, total, abierta, nombre, ocupado
     const ok = await accion(async () => {
       r = await llamar('cobrar_cuenta', {
         p_cuenta_id: c.id, p_pagos: pagos, p_solicitud_id: solicitud,
-        p_propina: prop, p_propina_metodo: prop > 0 ? propinaMetodo : null,
+        p_propina: prop, p_propina_metodo: prop > 0 ? propinaMetodo : null, p_imprimir_ticket: imprimirTicket,
       });
-    }, c.tipo === 'mesa' ? `Cobrado. ${nombre(c)} queda libre.` : 'Pedido para llevar cobrado.');
+    }, (c.tipo === 'mesa' ? `Cobrado. ${nombre(c)} queda libre.` : 'Pedido para llevar cobrado.') + (imprimirTicket ? ' Imprimiendo ticket.' : ''));
     if (ok && r) {
-      const { data } = await supabase.from('trabajos_impresion').select('contenido')
-        .eq('cuenta_id', c.id).eq('documento', 'ticket').is('reimpresion_de', null).order('creado_en', { ascending: false }).limit(1).maybeSingle();
-      if (data) verTicket(data.contenido as unknown as ContenidoTicket, (r as { cambio: number }).cambio);
+      const t = await llamar<ContenidoTicket>('ver_ticket', { p_cuenta_id: c.id }).catch(() => null);
+      if (t) verTicket(t, (r as { cambio: number }).cambio);
       setSel(null);
     }
   }
@@ -379,9 +380,9 @@ function Detalle({ c, lineasC, extrasC, ticketC, total, abierta, nombre, ocupado
       {cobrada && (
         <>
           <p className="rem ok">Cuenta cobrada.</p>
-          {ticketC && <button className="btn s" onClick={() => verTicket(ticketC.contenido as unknown as ContenidoTicket)}>Ver ticket</button>}{' '}
+          <button className="btn s" onClick={async () => { const t = await llamar<ContenidoTicket>('ver_ticket', { p_cuenta_id: c.id }).catch(() => null); if (t) verTicket(t); }}>Ver ticket</button>{' '}
           <button className="btn s" disabled={ocupado} onClick={() => accion(() => llamar('reimprimir_ticket', { p_cuenta_id: c.id }), 'Ticket enviado a la impresora de caja')}>
-            Reimprimir ticket
+            {ticketC ? 'Reimprimir ticket' : 'Imprimir ticket'}
           </button>
         </>
       )}
@@ -430,8 +431,11 @@ function Detalle({ c, lineasC, extrasC, ticketC, total, abierta, nombre, ocupado
           {efectivo?.recibido != null && (
             <p className={`rem ${cambio >= 0 ? 'ok' : 'no'}`}>{cambio >= 0 ? `Cambio: ${dinero(cambio)}` : `El efectivo no alcanza: faltan ${dinero(-cambio)}`}</p>
           )}
+          <label className="f" style={{ fontWeight: 600 }}>
+            <input type="checkbox" checked={imprimirTicket} onChange={(e) => setImprimirTicket(e.target.checked)} /> Imprimir ticket
+          </label>
           <button className="btn big" disabled={ocupado || falta !== 0 || !pagos.length || cambio < 0} onClick={cobrar}>
-            {ocupado ? 'Cobrando…' : 'Cobrar e imprimir ticket'}
+            {ocupado ? 'Cobrando…' : imprimirTicket ? 'Cobrar e imprimir ticket' : 'Cobrar'}
           </button>
         </>
       )}

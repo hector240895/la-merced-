@@ -64,8 +64,8 @@ const cuenta = (page, texto) => page.locator('.acc', { hasText: texto });
     await laura.getByRole('button', { name: 'Caja y corte' }).click();
     await laura.getByLabel('Fondo inicial').fill('500');
     await laura.getByRole('button', { name: 'Abrir caja', exact: true }).click();
-    await laura.getByText('Caja abierta', { exact: true }).waitFor();
-    await laura.getByRole('button', { name: 'Cobrar', exact: true }).click();
+    await laura.locator('.chip', { hasText: 'Caja abierta' }).waitFor();
+    await laura.getByRole('button', { name: 'Cobrar', exact: true }).first().click();
   });
 
   // ---------------------------------------------------------------- Para llevar desde el celular
@@ -107,6 +107,7 @@ const cuenta = (page, texto) => page.locator('.acc', { hasText: texto });
     await laura.getByLabel('Método de la propina').selectOption('efectivo');
     await laura.locator('.rem', { hasText: 'Cambio: $30' }).waitFor();
     await captura(laura, '21-caja-cobro');
+    await laura.getByLabel('Imprimir ticket').check();
     await laura.getByRole('button', { name: 'Cobrar e imprimir ticket' }).click();
   });
   await comprobar('Sale el ticket estilo tienda: datos del negocio, folio, productos, total con letra y cambio', async () => {
@@ -151,8 +152,10 @@ const cuenta = (page, texto) => page.locator('.acc', { hasText: texto });
     await laura.getByText('La cuenta se manda a la impresora de caja (no es cobro).').waitFor();
     await laura.getByRole('button', { name: 'Transferencia', exact: true }).click();
     await laura.getByRole('button', { name: 'Agregar pago' }).click();
-    await laura.getByRole('button', { name: 'Cobrar e imprimir ticket' }).click();
-    await laura.getByText('Cobrado. Mesa 1 queda libre.').waitFor();
+    // Por defecto no se imprime ticket: el botón dice solo "Cobrar".
+    await laura.locator('.btn.big', { hasText: 'Cobrar' }).click();
+    await laura.getByText('Cobrado. Mesa 1 queda libre.', { exact: true }).waitFor();
+    await laura.locator('.papel').getByText('TOTAL: $75.00').waitFor();
     await laura.getByRole('button', { name: 'Cerrar' }).click();
     await tarjeta(carlos, 'Mesa 1').getByText('Disponible').waitFor({ timeout: 8000 });
   });

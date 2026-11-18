@@ -95,7 +95,7 @@ select public.cobrar_cuenta((select id from cuentas where mesa_id = (select m1 f
 select throws_ok($$ select public.imprimir_precuenta((select id from cuentas where mesa_id = (select m1 from t))) $$,
   'La cuenta no está abierta', 'Una cuenta cobrada no imprime precuenta (para eso está el ticket)');
 select public.cobrar_cuenta((select id from cuentas where mesa_id = (select m3 from g)),
-  '[{"metodo": "tarjeta", "importe": 70}]', gen_random_uuid());
+  '[{"metodo": "tarjeta", "importe": 70}]', gen_random_uuid(), 0, null, true);
 reset role;
 select ok((select contenido -> 'lineas' @> '[{"producto": "Tostada con guisado", "opcion": null}, {"producto": "Agua de sabor (500 ml)", "opcion": null}]'
            from trabajos_impresion where documento = 'ticket' and cuenta_id = (select id from cuentas where mesa_id = (select m3 from g))),

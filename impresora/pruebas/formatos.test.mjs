@@ -100,20 +100,26 @@ test('corte de caja: esperado, contado y diferencia', () => {
   assert.match(t, /Faltante\s+\$5/);
 });
 
-test('precuenta: mesa, productos, total y agradecimiento, en 58 mm', () => {
+test('precuenta con el mismo formato del ticket, sin recibido ni cambio, en 58 mm', () => {
   const t = leer(precuenta({
-    documento: 'precuenta', negocio: 'Cenaduría La Merced', destino: 'Mesa 1', folio: 25, fecha: '08/11/2026', hora: '22:40',
+    documento: 'precuenta', negocio: 'Cenaduría La Merced', direccion: 'Av. Fundición 2103, San Cayetano, 20010 Aguascalientes, Ags.',
+    telefonos: '449 940 44 90 / 449 181 31 21', destino: 'Mesa 1', folio: 25, fecha: '08/11/2026', hora: '10:40:12 PM',
     lineas: [{ cantidad: 2, producto: 'Pozole rojo grande', opcion: null, precio_unitario: 85, importe: 170 },
-             { cantidad: 1, producto: 'Refresco de vidrio (355 ml)', opcion: 'Pepsi', precio_unitario: 25, importe: 25 }],
-    extras: [], total: 195, leyenda: '¡Gracias por su visita!',
+             { cantidad: 1, producto: 'Refresco de vidrio (355 ml)', opcion: null, precio_unitario: 25, importe: 25 }],
+    extras: [], total: 195, total_letra: 'CIENTO NOVENTA Y CINCO PESOS 00/100 M.N.', leyenda: '¡Gracias por su visita!',
+    recibido: 500, cambio: 305,
   }, { ancho: 32 }));
-  assert.match(t, /Mesa 1/);
-  assert.match(t, /Folio 25/);
-  assert.match(t, /2 Pozole rojo grande\s+\$170/);
-  assert.match(t, /Pepsi/);
-  assert.match(t, /TOTAL\s+\$195/);
-  assert.match(t, /¡Gracias por su visita!/);
-  assert.doesNotMatch(t, /CUENTA INFORMATIVA|NO PAGADA/);
+  assert.match(t, /CENADURÍA LA MERCED/);
+  assert.match(t, /TEL\. 449 940 44 90/);
+  assert.match(t, /FOLIO NO\. 25/);
+  assert.match(t, /MESA 1/);
+  assert.match(t, /CANT DESCRIPCION\s+IMPORTE/);
+  assert.match(t, /2  POZOLE ROJO GRANDE\s+\$170\.00/);
+  assert.match(t, /TOTAL: \$195\.00/);
+  assert.match(t, /SON: CIENTO NOVENTA Y CINCO/);
+  assert.match(t, /¡GRACIAS POR SU VISITA!/);
+  assert.match(t, /ESTE NO ES UN COMPROBANTE FISCAL/);
+  assert.doesNotMatch(t, /RECIBIDO|CAMBIO|CUENTA INFORMATIVA|NO PAGADA/);
   for (const r of t.split('\n')) assert.ok(r.length <= 32, `renglón demasiado largo: "${r}"`);
 });
 
