@@ -5,3 +5,4 @@ node_modules/
 supabase/.branches
 supabase/.temp
 .DS_Store
+respaldos/

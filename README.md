@@ -19,8 +19,10 @@ mesas, comandas impresas, caja, catálogo, inventario manual, gastos y reportes.
 | 6 | Impresoras | Terminada → [docs/ETAPA-6.md](docs/ETAPA-6.md) |
 | 7 | Catálogo | Terminada → [docs/ETAPA-7.md](docs/ETAPA-7.md) |
 | 8 | Inventario | Terminada → [docs/ETAPA-8.md](docs/ETAPA-8.md) |
-| 9 | Finanzas y reportes | Lista para revisión → [docs/ETAPA-9.md](docs/ETAPA-9.md) |
-| 10 | Pruebas y puesta en marcha | Pendiente |
+| 9 | Finanzas y reportes | Terminada → [docs/ETAPA-9.md](docs/ETAPA-9.md) |
+| 10 | Pruebas y puesta en marcha | Lista para revisión → [docs/ETAPA-10.md](docs/ETAPA-10.md) |
+
+**Guías de uso:** [Meseros](docs/guias/MESEROS.md) · [Caja](docs/guias/CAJA.md) · [Propietarios](docs/guias/PROPIETARIOS.md) · [Si algo falla](docs/SI-ALGO-FALLA.md)
 
 ## Llaves y contraseñas
 
